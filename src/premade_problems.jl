@@ -1,5 +1,6 @@
 ## NLSE Examples
-ψ₀ = z -> sech.(z)
+f(t, z) -> sech.(z)
+A₀ = z -> sech.(z)
 analytic_soliton(t, z) = sech.(z)
 tspan = (0.0, 1.0)
 zspan = (0.0, 1.0)
@@ -9,7 +10,7 @@ dt = 1e-5
 """Example problem for a bright soliton (stationary solution):
 
 ```math
-psi(t, z)=sech(z)
+A(t, z)=sech(z)
 ```
 """
-prob_bright_soliton = NLSEProblem(analytic_soliton, ψ₀)
+prob_bright_soliton = NLSEProblem(analytic_soliton, A₀)

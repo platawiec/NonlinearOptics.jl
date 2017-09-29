@@ -1,16 +1,15 @@
 module NonlinearOptics
-    using DiffEqPDEBase
     using DiffEqBase
     using Juno
     using RecursiveArrayTools, MuladdMacro
 
-    import DiffEqPDEBase: solve
+    import DiffEqBase: solve
 
-    abstract type AbstractNLSEProblem{uType, tType, zType} <: PDEProblem end
+    abstract type AbstractNLSEProblem{uType, tType, zType} <: DEProblem end
 
     abstract type AbstractNLSESolution{T,N} <: AbstractTimeseriesSolution{T,N} end
 
-    abstract type AbstractNLSEAlgorithm <: PDEAlgorithm end
+    abstract type AbstractNLSEAlgorithm <: DEAlgorithm end
 
     include("problems.jl")
     include("solutions.jl")
