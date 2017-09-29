@@ -1,0 +1,1 @@
+struct NLSESplitStepFourier <: AbstractNLSEAlgorithm end

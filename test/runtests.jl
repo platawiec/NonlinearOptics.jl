@@ -1,5 +1,5 @@
 using NonlinearOptics
 using Base.Test
 
-# write your own tests here
-@test 1 == 2
+println("NLSE Tests")
+@time @test include("nlse/nlse_tests.jl")
