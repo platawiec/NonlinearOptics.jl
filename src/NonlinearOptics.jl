@@ -1,6 +1,8 @@
 module NonlinearOptics
     using DiffEqPDEBase
     using DiffEqBase
+    using Juno
+    using RecursiveArrayTools, MuladdMacro
 
     import DiffEqPDEBase: solve
 

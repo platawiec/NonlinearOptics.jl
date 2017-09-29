@@ -1,39 +1,65 @@
-function solve(
-    prob::NLSEProblem,
-    alg::NLSESplitStepFourier;
-    solver::Symbol=:Direct,
-    save_everystep::Bool=false,
-    timeseries_steps::Int = 100,
-    autodiff::Bool=false,
-    method=:trust_region,
-    show_trace=false,
-    iterations=1000,
-    progress_steps::Int=1000,
-    progressbar::Bool=false,
-    progressbar_name="NLSE",
+function solve{algType<:NLSEAlgorithm}(
+    prob::AbstractNLSEProblem,
+    alg::algType,
+    timeseries=[],
+    ts=[],
+    kwargs...)
+
+    integrator = init(prob, alg, timeseries, ts; kwargs...)
+    solve!(integrator)
+    integrator.sol
+end
+
+function init{algType<:NLSEAlgorithm}(
+    prob::AbstractNLSEAlgorithm,
+    alg::algType,
+    timeseries_init=typeof(prob.u0)[],
+    timeseries_steps = 1,
+    saveat = eltype(prob.tspan)[],
+    tstops = eltype(prob.tspan)[],
+    save_everystep = isempty(saveat),
+    save_timeseries = nothing,
+    save_start = true,
+    dense = save_everystep && !(typeof(alg) <: Discrete),
+    dt = typeofalg <: Discrete && isempty(tstops) ? eltype(prob.tspan)(1) : eltype(prob.tspan)(0),
+    adaptive = isadaptive(alg),
+    abstol = nothing,
+    reltol = nothing,
+    maxiters = 1000000,
+    verbose = true,
+    progress = false,
+    progress_steps = 1000,
+    progress_name = "NLSE",
+    progress_message = "NLSE",
+    initialize_integrator = true,
     kwargs...
     )
 
-    #Unroll important constants
-    @unpack f, u0, Du, analytic, numvars = prob
+    tType = eltype(prob.tspan)
+    tspan = prob.tspan
+    tdir = sign(tspan[end]-tspan[1])
 
-    if dt != 0
-        numiters = round(Int64, tspan[2]/dt)
-    else
-        numiters = 0
-    end
-
-    #Set initial
-    u = copy(u0)
     t = tspan[1]
 
-    #Setup timeseries
-    timeseries = Vector{typeof(u)}(0)
-    push!(timeseries, copy(u))
-    ts = Float64[t]
+    if dt == tType(0) && isempty(tstops)
+        error("NLSE requires a choice of dt or choosing the tstops")
+    end
 
-    sqrtdt = sqrt(dt)
+    if tspan[1] == tspan[end]
+        error("Timespan is trivial")
+    end
 
-    #Split-Step loop
-    u, timeseries, ts = nlse_solve(NLSEIntegrator)
+    u = recursivecopy(prob.u0)
+    uType = typeof(u)
+    uElType = recursive_eltype(u)
+
+
+    integrator = NLSEIntegrator()
+
+    if initialize_integrator
+        initialize!(integrator)
+        #initialize!(callbacks_internal, t, u, integrator)
+    end
+
+    integrator
 end
