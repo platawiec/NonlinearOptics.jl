@@ -13,6 +13,8 @@ module NonlinearOptics
     include("problems.jl")
     include("solutions.jl")
     include("algorithms.jl")
+    include("integrators.jl")
+    include("solve.jl")
     include("premade_problems.jl")
 
     export NLSEProblem
