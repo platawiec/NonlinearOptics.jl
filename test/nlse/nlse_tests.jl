@@ -9,7 +9,7 @@ u0 = (z) -> sech.(z)
 tspan = (0.0, 1.0)
 zspan = (-1.0, 1.0)
 methods(NLSEProblem)
-prob_bright_soliton = NLSEProblem(N, D, u0, tspan, zspan, nothing)
+prob_bright_soliton = NLSEProblem(N, D, u0, tspan, zspan)
 
 # Define a soliton problem
 prob = prob_bright_soliton
@@ -17,6 +17,4 @@ prob = prob_bright_soliton
 """
 # Solve it
 println("Split-Step Fourier Method")
-sol = solve(prob, NLSESplitStepFourier())
-
-tst(1)
+sol = solve(prob, SymmetrizedSplitStep())

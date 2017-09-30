@@ -1,3 +1,8 @@
+mutable struct NLSEIntegrator{algType<:AbstractNLSEAlgorithm}
+    sol::SolType
+    alg::algType
+    cache::CacheType
+end
 
 # placeholder for future cache-ing
 function initialize!(integrator)
@@ -5,9 +10,7 @@ function initialize!(integrator)
 end
 
 function perform_step!(integrator, repeat_step=false)
-    @unpack t, dt, z, dz, uprev, u, f, fft_planned, ifft_planned = integrator
-
-    dzhalf = dz/2.0
+    @unpack t, dt, z, dz, dzhalf, uprev, u, f, fft_planned, ifft_planned = integrator
 
     @. u = exp(N(uprev) * dzhalf)
     u = fftshift(fft_planned * u)

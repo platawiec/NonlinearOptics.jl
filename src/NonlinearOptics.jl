@@ -3,7 +3,7 @@ module NonlinearOptics
     using Juno
     using RecursiveArrayTools, MuladdMacro, Parameters
 
-    import DiffEqBase: solve, isinplace
+    import DiffEqBase: solve, solve!, init, step!, build_solution, initialize!, isinplace
 
     abstract type AbstractNLSEProblem{uType, tType, zType} <: DEProblem end
 
