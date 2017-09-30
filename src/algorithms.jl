@@ -1,1 +1,1 @@
-struct NLSESplitStepFourier <: AbstractNLSEAlgorithm end
+struct SymmetrizedSplitStep <: AbstractNLSEAlgorithm end

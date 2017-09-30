@@ -1,17 +1,13 @@
 ## NLSE Examples
-γ = 9
+γnl = 9
 β₂ = 3
 
-N = (t, u) -> 1im * γ * abs2.(u) .* u
+N = (t, u) -> 1im * γnl * abs2.(u) .* u
 D = (k, u) -> 1im * β₂ / 2 * k.^2
 u0 = (z) -> sech.(z)
-tspan = (0, 1.0)
+tspan = (0.0, 1.0)
 zspan = (-1.0, 1.0)
 
-"""Example problem for a bright soliton (stationary solution):
-
-```math
-A(t, z)=sech(z)
-```
+"""Example of a bright soliton problem construction
 """
-prob_bright_soliton = NLSEProblem(N, D, tspan, zspan)
+prob_bright_soliton = NLSEProblem(N, D, u0, tspan, zspan)

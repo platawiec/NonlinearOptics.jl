@@ -1,7 +1,7 @@
 module NonlinearOptics
     using DiffEqBase
     using Juno
-    using RecursiveArrayTools, MuladdMacro
+    using RecursiveArrayTools, MuladdMacro, Parameters
 
     import DiffEqBase: solve
 
@@ -22,7 +22,7 @@ module NonlinearOptics
 
     export NLSESolution
 
-    export NLSEAlgorithm
+    export SymmetrizedSplitStep
 
     export prob_bright_soliton
 
