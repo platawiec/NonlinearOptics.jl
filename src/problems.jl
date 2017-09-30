@@ -10,10 +10,13 @@ mutable struct NLSEProblem{uType, tType, zType, F1, F2, C} <: AbstractNLSEProble
     tspan::Tuple{tType,tType}
     zspan::Tuple{zType,zType}
     callback::C
-    function NLSEProblem(N, D, u0, tspan, zspan; callback=nothing)
-        new{typeof(u0), promote_type(map(typeof, tspan)...),
-            promote_type(map(typeof, zspan)...),
-            typeof(N), typeof(D), typeof(callback)}(
-            N, D, u0, tspan, zspan, callback)
-    end
 end
+
+function NLSEProblem(N, D, u0, tspan, zspan; callback=nothing, kwargs...)
+    NLSEProblem{typeof(u0), promote_type(map(typeof, tspan)...),
+                promote_type(map(typeof, zspan)...),
+                typeof(N), typeof(D), typeof(callback)}(
+                N, D, u0, tspan, zspan, callback)
+end
+
+isinplace(prob::AbstractNLSEProblem{uType, tType, zType}) where {uType, tType, zType} = false
