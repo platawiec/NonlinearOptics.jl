@@ -1,6 +1,6 @@
-function solve{algType<:NLSEAlgorithm}(
-    prob::AbstractNLSEProblem,
-    alg::algType,
+function solve(
+    prob::AbstractNLSEProblem{uType, tType, zType},
+    alg::NLSESplitStepFourier,
     timeseries=[],
     ts=[],
     kwargs...)
@@ -10,9 +10,9 @@ function solve{algType<:NLSEAlgorithm}(
     integrator.sol
 end
 
-function init{algType<:NLSEAlgorithm}(
-    prob::AbstractNLSEAlgorithm,
-    alg::algType,
+function init(
+    prob::AbstractNLSEProblem{uType, tType, zType},
+    alg::NLSESplitStepFourier,
     timeseries_init=typeof(prob.u0)[],
     timeseries_steps = 1,
     saveat = eltype(prob.tspan)[],

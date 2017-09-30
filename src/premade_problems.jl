@@ -1,11 +1,12 @@
 ## NLSE Examples
-f(t, z) -> sech.(z)
-A₀ = z -> sech.(z)
-analytic_soliton(t, z) = sech.(z)
-tspan = (0.0, 1.0)
-zspan = (0.0, 1.0)
-dz = 1e-5
-dt = 1e-5
+γ = 9
+β₂ = 3
+
+N = (t, u) -> 1im * γ * abs2.(u) .* u
+D = (k, u) -> 1im * β₂ / 2 * k.^2
+u0 = (z) -> sech.(z)
+tspan = (0, 1.0)
+zspan = (-1.0, 1.0)
 
 """Example problem for a bright soliton (stationary solution):
 
@@ -13,4 +14,4 @@ dt = 1e-5
 A(t, z)=sech(z)
 ```
 """
-prob_bright_soliton = NLSEProblem(analytic_soliton, A₀)
+prob_bright_soliton = NLSEProblem(N, D, tspan, zspan)
