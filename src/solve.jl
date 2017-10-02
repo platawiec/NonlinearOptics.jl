@@ -23,16 +23,30 @@ function init{algType<:AbstractNLSEAlgorithm}(
     save_timeseries = nothing,
     save_start = true,
     dense = save_everystep,
-    adaptive = false,
-    abstol = nothing,
-    reltol = nothing,
+    dt = (p.tspan[2]-p.tspan[1])/10000,
     maxiters = 1000000,
     verbose = true,
     progress = false,
     progress_steps = 1000,
     progress_name = "NLSE",
     progress_message = "NLSE",
+    kwargs...
     )
+
+    progress ? (prog = Juno.ProgressBar(name=progress_name)) : prog = nothing
+
+    cache = alg_cache(alg, u, rate_prototype, uEltypeNoUnits, tTypeNoUnits,
+                      uprev, uprev2, f, t, dt, reltol_internal, Val{isinplace(prob)})
+
+    sol = build_solution(prob, alg, ts, timeseries,
+                         dense=dense, k=ks,
+                         interp=id, calculate_error = false)
+
+    integrator = NLSEIntegrator{}()
+
+    initialize!(integrator, integrator.cache)
+
+    integrator
 end
 
 function solve!(integrator::NLSEIntegrator)
