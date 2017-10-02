@@ -3,7 +3,7 @@
 D is dispersive operator, N is nonlinear operator
 Note that for NLSE for pulse propagation, substitute z -> t
 """
-mutable struct NLSEProblem{uType, tType, zType, F1, F2, C} where {uType<:Complex} <: AbstractNLSEProblem{uType, tType, zType}
+mutable struct NLSEProblem{uType, tType, zType, F1, F2, C} <: AbstractNLSEProblem{uType, tType, zType}
     N::F1
     D::F2
     u0::uType

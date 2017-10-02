@@ -42,7 +42,15 @@ function init{algType<:AbstractNLSEAlgorithm}(
                          dense=dense, k=ks,
                          interp=id, calculate_error = false)
 
-    integrator = NLSEIntegrator{}()
+    u = copy(prob.u0)
+    uType = typeof(u)
+    uprev = copy(u)
+    t = prob.tspan[1]
+    tType = typeof(t)
+    CacheType = typeof(cache)
+
+    integrator = NLSEIntegrator{algType, uType, tType, CacheType}(
+        sol, u, uprev, t, dt, alg, cache)
 
     initialize!(integrator, integrator.cache)
 
@@ -51,17 +59,12 @@ end
 
 function solve!(integrator::NLSEIntegrator)
     @inbounds while !isempty(integrator.opts.tstops)
-        while integrator.tdir*integrator.t < integrator.tdir*top(integrator.opts.tstops)
-            loopheader!(integrator)
-            perform_step!(integrator,integrator.cache)
-            loopfooter!(integrator)
-            if isempty(integrator.opts.tstops)
-                break
-            end
-        end
-        handle_tstop!(integrator)
+        integrator.t = pop!(integrator.opts.tstops)
+        perform_step!(integrator, integrator.cache)
+        push!(integrator.out, integrator.u)
     end
-    postamble!(integrator)
+
+    build_solution(p, integrator.alg, integrator.tstops, integrator.out)
 
     if typeof(integrator.sol.prob.f) <: Tuple
         f = integrator.sol.prob.f[1]
