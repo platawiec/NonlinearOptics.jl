@@ -8,15 +8,15 @@ mutable struct NLSEProblem{uType, tType, zType, F1, F2, C} <: AbstractNLSEProble
     D::F2
     u0::uType
     tspan::Tuple{tType,tType}
-    zspan::Tuple{zType,zType}
+    zmesh::Vector{zType}
     callback::C
 end
 
 function NLSEProblem(N, D, u0, tspan, zspan; callback=nothing, kwargs...)
-    NLSEProblem{typeof(u0), promote_type(map(typeof, tspan)...),
-                promote_type(map(typeof, zspan)...),
+    NLSEProblem{typeof(u0.(zmesh)), promote_type(map(typeof, tspan)...),
+                eltype(zmesh),
                 typeof(N), typeof(D), typeof(callback)}(
-                N, D, u0, tspan, zspan, callback)
+                N, D, u0.(zmesh), tspan, zspan, callback)
 end
 
 isinplace(prob::AbstractNLSEProblem{uType, tType, zType}) where {uType, tType, zType} = false

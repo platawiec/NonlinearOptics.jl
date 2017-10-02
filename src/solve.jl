@@ -2,10 +2,10 @@ function solve{algType<:AbstractNLSEAlgorithm}(
     prob::AbstractNLSEProblem,
     alg::algType,
     timeseries=[],
-    ts=[], zs=[], ks=[];
+    ts=[], ks=[];
     kwargs...)
 
-    integrator = init(prob, alg, timeseries, ts, zs, ks; kwargs...)
+    integrator = init(prob, alg, timeseries, ts, prob.zmesh, ks; kwargs...)
     solve!(integrator)
     integrator.sol
 end
@@ -14,7 +14,7 @@ function init{algType<:AbstractNLSEAlgorithm}(
     prob::AbstractNLSEProblem,
     alg::algType,
     timeseries_init=typeof(prob.u0)[],
-    ts_init=eltype(prob.tspan)[], zs_init=eltype(prob.zspan)[],
+    ts_init=eltype(prob.tspan)[], zmesh_init=eltype(prob.zspan)[],
     ks_init=[];
     timeseries_steps = 1,
     saveat = eltype(prob.tspan)[],
@@ -24,7 +24,6 @@ function init{algType<:AbstractNLSEAlgorithm}(
     save_start = true,
     dense = save_everystep,
     dt = (prob.tspan[2]-prob.tspan[1])/10000,
-    dz = (prob.zspan[2]-prob.zspan[1])/2048,
     maxiters = 1000000,
     verbose = true,
     progress = false,
@@ -42,19 +41,17 @@ function init{algType<:AbstractNLSEAlgorithm}(
     t = prob.tspan[1]
     tType = typeof(t)
     tstops = collect(prob.tspan[1]:dt:prob.tspan[2])
-    zs = collect(prob.zspan[1]:dz:prob.zspan[2])
+    zs = zmesh
     ktilde = 2pi./zs
 
     ks = ks_init
     timeseries = timeseries_init
 
-    cache = alg_cache(alg, zs)
+    cache = alg_cache(alg, u)
 
     CacheType = typeof(cache)
 
-
     sol = build_solution(prob, alg, tstops, zs, timeseries)
-
 
     integrator = NLSEIntegrator{algType, uType, tType, typeof(tstops), typeof(ktilde), CacheType, typeof(prob.N), typeof(prob.D)}(
         N, D, sol, u, uprev, t, dt, tstops, ktilde, alg, cache)
@@ -68,7 +65,8 @@ function solve!(integrator::NLSEIntegrator)
     @inbounds while !isempty(integrator.tstops)
         integrator.t = pop!(integrator.tstops)
         perform_step!(integrator, integrator.cache)
-        push!(integrator.out, integrator.u)
+        @show integrator.u
+        #push!(integrator., integrator.u)
     end
 
 
