@@ -23,7 +23,8 @@ function init{algType<:AbstractNLSEAlgorithm}(
     save_timeseries = nothing,
     save_start = true,
     dense = save_everystep,
-    dt = (p.tspan[2]-p.tspan[1])/10000,
+    dt = (prob.tspan[2]-prob.tspan[1])/10000,
+    dz = (prob.zspan[2]-prob.zspan[1])/2048,
     maxiters = 1000000,
     verbose = true,
     progress = false,
@@ -35,46 +36,42 @@ function init{algType<:AbstractNLSEAlgorithm}(
 
     progress ? (prog = Juno.ProgressBar(name=progress_name)) : prog = nothing
 
-    cache = alg_cache(alg, u, rate_prototype, uEltypeNoUnits, tTypeNoUnits,
-                      uprev, uprev2, f, t, dt, reltol_internal, Val{isinplace(prob)})
-
-    sol = build_solution(prob, alg, ts, timeseries,
-                         dense=dense, k=ks,
-                         interp=id, calculate_error = false)
-
-    u = copy(prob.u0)
+    u = deepcopy(prob.u0)
     uType = typeof(u)
-    uprev = copy(u)
+    uprev = deepcopy(u)
     t = prob.tspan[1]
     tType = typeof(t)
+    tstops = collect(prob.tspan[1]:dt:prob.tspan[2])
+    zs = collect(prob.zspan[1]:dz:prob.zspan[2])
+    ktilde = 2pi./zs
+
+    ks = ks_init
+    timeseries = timeseries_init
+
+    cache = alg_cache(alg, zs)
+
     CacheType = typeof(cache)
 
-    integrator = NLSEIntegrator{algType, uType, tType, CacheType}(
-        sol, u, uprev, t, dt, alg, cache)
+
+    sol = build_solution(prob, alg, tstops, zs, timeseries)
+
+
+    integrator = NLSEIntegrator{algType, uType, tType, typeof(tstops), typeof(ktilde), CacheType, typeof(prob.N), typeof(prob.D)}(
+        N, D, sol, u, uprev, t, dt, tstops, ktilde, alg, cache)
 
     initialize!(integrator, integrator.cache)
 
-    integrator
+    return integrator
 end
 
 function solve!(integrator::NLSEIntegrator)
-    @inbounds while !isempty(integrator.opts.tstops)
-        integrator.t = pop!(integrator.opts.tstops)
+    @inbounds while !isempty(integrator.tstops)
+        integrator.t = pop!(integrator.tstops)
         perform_step!(integrator, integrator.cache)
         push!(integrator.out, integrator.u)
     end
 
-    build_solution(p, integrator.alg, integrator.tstops, integrator.out)
 
-    if typeof(integrator.sol.prob.f) <: Tuple
-        f = integrator.sol.prob.f[1]
-    else
-        f = integrator.sol.prob.f
-    end
-
-    if has_analytic(f)
-        calculate_solution_errors!(integrator.sol;timeseries_errors=integrator.opts.timeseries_errors,dense_errors=integrator.opts.dense_errors)
-    end
     integrator.sol.retcode = :Success
     nothing
 end

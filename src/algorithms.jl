@@ -5,14 +5,12 @@ abstract type NLSEConstantCache <: NLSECache end
 abstract type NLSEMutableCache <: NLSECache end
 
 mutable struct SplitStepConstantCache <: NLSEConstantCache
-    planned_fft!::FFTW.cFFTWPlan
-    planned_ifft!::Base.DFT.ScaledPlan
+    planned_fft!
+    planned_ifft!
 end
 
-function alg_cache(alg::SymmetrizedSplitStep, u, rate_prototype,
-                    uEltypeNoUnits, tTypeNoUnits, uprev, uprev2,
-                    f, t, dt, reltol, ::Type{Val{false}})
-    planned_fft! = plan_fft!(u; flags=FFTW.MEASURE)
-    planned_ifft! = plan_ifft!(u; flags=FFTW.MEASURE)
+function alg_cache(alg::SymmetrizedSplitStep, u)
+    planned_fft! = plan_fft!((1+0im)*u; flags=FFTW.MEASURE)
+    planned_ifft! = plan_ifft!((1+0im)*u; flags=FFTW.MEASURE)
     SplitStepConstantCache(planned_fft!, planned_ifft!)
 end

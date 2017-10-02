@@ -3,7 +3,8 @@ module NonlinearOptics
     using Juno
     using RecursiveArrayTools, MuladdMacro, Parameters
 
-    import DiffEqBase: solve, solve!, init, step!, build_solution, initialize!, isinplace
+    import DiffEqBase: solve, solve!, init, step!,
+                       build_solution, initialize!, isinplace
 
     abstract type AbstractNLSEProblem{uType, tType, zType} <: DEProblem end
 
@@ -25,6 +26,5 @@ module NonlinearOptics
     export SymmetrizedSplitStep
 
     export prob_bright_soliton
-
 
 end # module

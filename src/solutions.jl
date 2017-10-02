@@ -19,16 +19,16 @@ function build_solution(
     prob::AbstractNLSEProblem,
     alg, t, z, u;
     dense=false, k=[], du=[],
-    interp = !isempty(du) ? HermiteInterpolation(t, u, du) : LinearInterpolation(t, u),
+    interp = !isempty(du) ? DiffEqBase.HermiteInterpolation(t, u, du) : DiffEqBase.LinearInterpolation(t, u),
     retcode = :Default, kwargs...)
 
     T = eltype(eltype(u))
-    N = length(size(prob.u0)..., length(u))
+    N = length(prob.u0)
 
     sol = NLSESolution{T,N,typeof(u),Void,Void,
                        typeof(t),typeof(z), typeof(k),
                        typeof(prob),typeof(alg),typeof(interp)}(u,nothing,nothing,
-                       t,k,prob,alg,interp,dense,0,retcode)
+                       t,z,k,prob,alg,interp,dense,0,retcode)
 
     return sol
 end
