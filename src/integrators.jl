@@ -1,5 +1,5 @@
-mutable struct NLSEIntegrator{algType<:AbstractNLSEAlgorithm}
-    sol::SolType
+mutable struct NLSEIntegrator{algType<:AbstractNLSEAlgorithm, CacheType<:DECache}
+    sol::NLSESolution
     alg::algType
     cache::CacheType
 end
@@ -20,4 +20,16 @@ function perform_step!(integrator, repeat_step=false)
 
     integrator.uprev = u
 
+end
+
+function loopheader!(integrator)
+end
+
+function loopfooter!(integrator)
+end
+
+function handle_tstop!(integrator)
+end
+
+function postamble!(integrator)
 end
