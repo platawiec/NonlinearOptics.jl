@@ -24,7 +24,7 @@ function perform_step!(integrator, cache::SplitStepConstantCache, repeat_step=fa
     halfdt = dt/2
     @. u = exp(N(t, uprev) * halfdt)
     u = fftshift(planned_fft! * u)
-    @. u = exp(D(ktilde, uprev) * dt)
+    @. u = exp(D(ktilde, u) * dt)
     u = planned_ifft! * ifftshift(u)
     @. u = exp(N(t, uprev) * halfdt)
 

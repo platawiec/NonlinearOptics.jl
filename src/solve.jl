@@ -14,7 +14,7 @@ function init{algType<:AbstractNLSEAlgorithm}(
     prob::AbstractNLSEProblem,
     alg::algType,
     timeseries_init=typeof(prob.u0)[],
-    ts_init=eltype(prob.tspan)[], zmesh_init=eltype(prob.zspan)[],
+    ts_init=eltype(prob.tspan)[], zmesh_init=eltype(prob.zmesh)[],
     ks_init=[];
     timeseries_steps = 1,
     saveat = eltype(prob.tspan)[],
