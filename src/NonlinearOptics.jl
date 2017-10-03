@@ -3,6 +3,8 @@ module NonlinearOptics
     using Juno
     using RecursiveArrayTools, MuladdMacro, Parameters
 
+    using RecipesBase
+
     import DiffEqBase: solve, solve!, init, step!,
                        build_solution, initialize!, isinplace
 
@@ -18,6 +20,7 @@ module NonlinearOptics
     include("integrators.jl")
     include("solve.jl")
     include("premade_problems.jl")
+    include("plot_recipes.jl")
 
     export NLSEProblem
 
