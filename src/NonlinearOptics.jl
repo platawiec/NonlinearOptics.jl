@@ -26,8 +26,10 @@ module NonlinearOptics
 
     export NLSESolution
 
-    export SymmetrizedSplitStep
+    export AbstractNLSEAlgorithm, SymmetrizedSplitStep
 
     export prob_bright_soliton
+
+    export solve
 
 end # module

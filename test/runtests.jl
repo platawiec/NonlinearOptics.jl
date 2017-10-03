@@ -1,5 +1,4 @@
-using NonlinearOptics
 using Base.Test
+using NonlinearOptics
 
-println("NLSE Tests")
-@time @test include("nlse/nlse_tests.jl")
+@time @testset "NLSE Tests" begin include("nlse/nlse_tests.jl") end
