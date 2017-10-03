@@ -65,7 +65,7 @@ function solve!(integrator::NLSEIntegrator)
     @inbounds while !isempty(integrator.tstops)
         integrator.t = pop!(integrator.tstops)
         perform_step!(integrator, integrator.cache)
-        @show integrator.u
+        push!(integrator.sol.u, integrator.u)
         #push!(integrator., integrator.u)
     end
 
