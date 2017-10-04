@@ -45,6 +45,7 @@ function init{algType<:AbstractNLSEAlgorithm}(
     dktilde = 2pi/maximum(prob.zmesh)
     ktilde_max = dktilde/2.0*(length(prob.zmesh)-1)
     ktilde = collect(-ktilde_max:dktilde:ktilde_max)
+    ktilde = fftshift(ktilde)
 
     ks = ks_init
     timeseries = timeseries_init
