@@ -42,7 +42,9 @@ function init{algType<:AbstractNLSEAlgorithm}(
     tType = typeof(t)
     tstops = collect(prob.tspan[1]:dt:prob.tspan[2])
     zs = prob.zmesh
-    ktilde = 2pi./zs
+    dktilde = 2pi/maximum(prob.zmesh)
+    ktilde_max = dktilde/2.0*(length(prob.zmesh)-1)
+    ktilde = collect(-ktilde_max:dktilde:ktilde_max)
 
     ks = ks_init
     timeseries = timeseries_init
