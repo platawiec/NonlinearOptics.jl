@@ -31,4 +31,7 @@ D_dispersive = (k, u) -> 1im * β₂ / 2 * k.^2
 u0_gauss = z -> (1+0im)*exp(-z^2/τ^2)
 tmesh = linspace(-100e-15, 100e-15, 2^10)
 zspan = (0.0, 0.002)
+"""A propagating pulse in dispersive fiber example,
+with units following SI convention.
+"""
 prob_dispersive_pulse = NLSEProblem(N_linear, D_dispersive, u0_gauss, zspan, tmesh)

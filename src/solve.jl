@@ -23,7 +23,7 @@ function init{algType<:AbstractNLSEAlgorithm}(
     save_timeseries = nothing,
     save_start = true,
     dense = save_everystep,
-    dt = (prob.tspan[2]-prob.tspan[1])/10000,
+    dt = (prob.tspan[2]-prob.tspan[1])/100,
     maxiters = 1000000,
     verbose = true,
     progress = false,
