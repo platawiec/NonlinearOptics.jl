@@ -41,7 +41,7 @@ function init{algType<:AbstractNLSEAlgorithm}(
     t = prob.tspan[1]
     tType = typeof(t)
     tstops = collect(prob.tspan[1]:dt:prob.tspan[2])
-    zs = zmesh
+    zs = prob.zmesh
     ktilde = 2pi./zs
 
     ks = ks_init
@@ -54,7 +54,7 @@ function init{algType<:AbstractNLSEAlgorithm}(
     sol = build_solution(prob, alg, tstops, zs, timeseries)
 
     integrator = NLSEIntegrator{algType, uType, tType, typeof(tstops), typeof(ktilde), CacheType, typeof(prob.N), typeof(prob.D)}(
-        N, D, sol, u, uprev, t, dt, tstops, ktilde, alg, cache)
+        prob.N, prob.D, sol, u, uprev, t, dt, tstops, ktilde, alg, cache)
 
     initialize!(integrator, integrator.cache)
 
@@ -63,7 +63,7 @@ end
 
 function solve!(integrator::NLSEIntegrator)
     @inbounds while !isempty(integrator.tstops)
-        integrator.t = pop!(integrator.tstops)
+        integrator.t = shift!(integrator.tstops)
         perform_step!(integrator, integrator.cache)
         push!(integrator.sol.u, integrator.u)
         #push!(integrator., integrator.u)
