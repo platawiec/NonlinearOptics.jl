@@ -13,10 +13,11 @@ mutable struct NLSEProblem{uType, tType, zType, F1, F2, C} <: AbstractNLSEProble
 end
 
 function NLSEProblem(N, D, u0, tspan, zspan; callback=nothing, kwargs...)
-    NLSEProblem{typeof(u0.(zmesh)), promote_type(map(typeof, tspan)...),
+    u0_vec = u0.(zmesh)
+    NLSEProblem{typeof(u0_vec), promote_type(map(typeof, tspan)...),
                 eltype(zmesh),
                 typeof(N), typeof(D), typeof(callback)}(
-                N, D, u0.(zmesh), tspan, zspan, callback)
+                N, D, u0_vec, tspan, zspan, callback)
 end
 
 isinplace(prob::AbstractNLSEProblem{uType, tType, zType}) where {uType, tType, zType} = false

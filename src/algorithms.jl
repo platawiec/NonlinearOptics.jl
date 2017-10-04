@@ -10,6 +10,7 @@ mutable struct SplitStepConstantCache <: NLSEConstantCache
 end
 
 function alg_cache(alg::SymmetrizedSplitStep, u)
+    FFTW.set_num_threads(Sys.CPU_CORES)
     planned_fft! = plan_fft!(u; flags=FFTW.MEASURE)
     planned_ifft! = plan_ifft!(u; flags=FFTW.MEASURE)
     SplitStepConstantCache(planned_fft!, planned_ifft!)
