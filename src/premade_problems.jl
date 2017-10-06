@@ -35,3 +35,22 @@ zspan = (0.0, 0.002)
 with units following SI convention.
 """
 prob_dispersive_pulse = NLSEProblem(N_linear, D_dispersive, u0_gauss, zspan, tmesh)
+
+FSR = 100e12
+α = 0.01
+sqrtθ = sqrt(0.01)
+γnl = 100
+L = 0.1e-3
+Ein = 1
+β₂ = -500e-27 #ps²/km -> s²/m
+δ₀ = 0.6
+D_LL = (k, u) -> 1im*FSR*L/2*k.^2
+N_LL = (t, u) -> (1im*γnl*L*FSR*abs2.(u) - (α+1im*δ₀)).*u + sqrtθ*Ein
+τspan = (0.0, 1.0)
+tmesh = linspace(-500e-15, 500e15, 2^10)
+"""Lugatio-Lefever evolution of cavity mean-field. From
+"Frequencu Comb Generation beyond the Lugatio-Lefever equation: multi-stability
+and super cavity solitons" T. Hansson, S. Wabnitz, Arxiv 1503.03274
+Parameters from Fig. 7a
+"""
+prob_LL = NLSEProblem(N_LL, D_LL, u0_gauss, τspan, tmesh)
