@@ -10,4 +10,4 @@ prob = prob_dispersive_pulse
 sol = solve(prob, SymmetrizedSplitStep())
 
 prob = prob_LL
-sol = solve(prob, SymmetrizedSplitStep(), dt=1e-6)
+sol = solve(prob, SymmetrizedSplitStep())

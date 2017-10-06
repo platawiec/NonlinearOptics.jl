@@ -48,13 +48,14 @@ function init{algType<:AbstractNLSEAlgorithm}(
     ktilde = fftshift(ktilde)
 
     ks = ks_init
-    timeseries = timeseries_init
+    timeseries = convert(Vector{uType}, timeseries_init)
+    ts = convert(Vector{tType}, ts_init)
 
     cache = alg_cache(alg, u)
 
     CacheType = typeof(cache)
 
-    sol = build_solution(prob, alg, tstops, zs, timeseries)
+    sol = build_solution(prob, alg, ts, zs, timeseries)
 
     integrator = NLSEIntegrator{algType, uType, tType, typeof(tstops), typeof(ktilde), CacheType, typeof(prob.N), typeof(prob.D)}(
         prob.N, prob.D, sol, u, uprev, t, dt, tstops, ktilde, alg, cache)
@@ -69,9 +70,8 @@ function solve!(integrator::NLSEIntegrator)
         integrator.t = shift!(integrator.tstops)
         perform_step!(integrator, integrator.cache)
         push!(integrator.sol.u, integrator.u)
-        #push!(integrator., integrator.u)
+        push!(integrator.sol.t, integrator.t)
     end
-
 
     integrator.sol.retcode = :Success
     nothing
