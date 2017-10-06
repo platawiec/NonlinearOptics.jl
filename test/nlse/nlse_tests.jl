@@ -2,7 +2,12 @@ using NonlinearOptics
 
 # Define a soliton problem
 prob = prob_bright_soliton
-"""Example of a bright soliton problem construction
-"""
+
 # Solve it
 sol = solve(prob, SymmetrizedSplitStep())
+
+prob = prob_dispersive_pulse
+sol = solve(prob, SymmetrizedSplitStep())
+
+prob = prob_LL
+sol = solve(prob, SymmetrizedSplitStep(), dt=1e-6)

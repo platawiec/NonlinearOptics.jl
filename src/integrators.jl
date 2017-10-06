@@ -17,15 +17,15 @@ function initialize!(integrator, cache::SplitStepConstantCache)
 
 end
 
-function perform_step!(integrator, cache::SplitStepConstantCache, repeat_step=false)
+@muladd function perform_step!(integrator, cache::SplitStepConstantCache, repeat_step=false)
     @unpack t, dt, ktilde, uprev, u, N, D = integrator
     @unpack planned_fft!, planned_ifft! = cache
 
     halfdt = dt/2
     @. u = exp(N(t, uprev) * halfdt) * uprev
-    u = planned_fft! * u
+    planned_fft! * u
     @. u = exp(D(ktilde, u) * dt) * u
-    u = planned_ifft! * u
+    planned_ifft! * u
     @. u = exp(N(t, uprev) * halfdt) * u
 
     integrator.uprev = copy(u)
