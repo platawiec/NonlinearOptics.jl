@@ -69,7 +69,7 @@ function solve!(integrator::NLSEIntegrator)
     @inbounds while !isempty(integrator.tstops)
         integrator.t = shift!(integrator.tstops)
         perform_step!(integrator, integrator.cache)
-        push!(integrator.sol.u, integrator.u)
+        push!(integrator.sol.u, copy(integrator.u))
         push!(integrator.sol.t, integrator.t)
     end
 
