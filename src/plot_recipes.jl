@@ -24,8 +24,9 @@
             ω, spectrum_dB[end]
         end
     else
+        # heatmap works for plotlyjs, but contour for gr
         @series begin
-            seriestype := :contour
+            seriestype := :heatmap
             fill := (true, :plasma)
             sol.t, ω, hcat(spectrum_dB...)
         end
