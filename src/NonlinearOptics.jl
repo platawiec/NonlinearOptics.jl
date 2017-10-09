@@ -14,13 +14,13 @@ module NonlinearOptics
 
     abstract type AbstractNLSEAlgorithm <: DEAlgorithm end
 
-    include("problems.jl")
-    include("solutions.jl")
-    include("algorithms.jl")
-    include("integrators.jl")
-    include("solve.jl")
-    include("premade_problems.jl")
-    include("plot_recipes.jl")
+    include("diffeqs\\problems.jl")
+    include("diffeqs\\solutions.jl")
+    include("diffeqs\\algorithms.jl")
+    include("diffeqs\\integrators.jl")
+    include("diffeqs\\solve.jl")
+    include("diffeqs\\premade_problems.jl")
+    include("diffeqs\\plot_recipes.jl")
 
     export NLSEProblem
 
