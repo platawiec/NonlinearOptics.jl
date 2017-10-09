@@ -12,8 +12,8 @@ mutable struct NLSESolution{T,N,uType,uType2,DType,tType,zType,rateType,P,A,ITyp
   tslocation::Int
   retcode::Symbol
 end
-(sol::NLSESolution)(t, z, deriv::Type=Val{0}; idx=nothing) = sol.interp(t, z, idxs, deriv)
-(sol::NLSESolution)(v, t, z, deriv::Type=Val{0}; idx=nothing) = sol.interp(v, t, z, idxs, deriv)
+(sol::NLSESolution)(t, deriv::Type=Val{0}; idxs=nothing) = sol.interp(t, idxs, deriv)
+(sol::NLSESolution)(v, t, deriv::Type=Val{0}; idxs=nothing) = sol.interp(v, t, idxs, deriv)
 
 function build_solution(
     prob::AbstractNLSEProblem,
