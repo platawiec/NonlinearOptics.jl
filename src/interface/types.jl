@@ -27,14 +27,14 @@ end
 abstract type AbstractOpticalProperty end
 
 struct EffectiveRefractiveIndex <: AbstractOpticalProperty
-    light::Vector{AbstractLight}
+    light::Vector{Wavelength}
     effectiveindex::Vector{Real}
 end
 struct CoreFraction <: AbstractOpticalProperty
     light::Vector{AbstractLight}
     corefraction::Vector{Real}
 end
-CoreFraction([Wavelength(0.0)], [1.0]) = CoreFraction()
+CoreFraction() = CoreFraction([Wavelength(0.0)], [1.0])
 
 struct EffectiveModeArea <: AbstractOpticalProperty
     light::Vector{AbstractLight}
@@ -46,7 +46,7 @@ struct Mode
     effectivearea::EffectiveModeArea
     corefraction::CoreFraction
 end
-Mode(effectiveindex, effectivearea, CoreFraction()) = Mode(effectiveindex, effectivearea)
+Mode(effectiveindex, effectivearea) = Mode(effectiveindex, effectivearea, CoreFraction())
 
 abstract type AbstractStructure end
 

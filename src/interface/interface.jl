@@ -2,11 +2,22 @@ function wavelength(light::Wavelength) light.λ end
 function wavelength(light::Frequency) c/light.f end
 function frequency(light::Wavelength) c/light.λ end
 function frequency(light::Frequency) light.f end
-function frequency(prop::AbstractOpticalProperty) frequency(prop.light) end
-function wavelength(prop::AbstractOpticalProperty) wavelength(prop.light) end
+function frequency(prop::AbstractOpticalProperty) frequency.(prop.light) end
+function wavelength(prop::AbstractOpticalProperty) wavelength.(prop.light) end
 function get_property(prop::EffectiveRefractiveIndex) prop.effectiveindex end
 function get_property(prop::CoreFraction) prop.corefraction end
 function get_property(prop::EffectiveModeArea) prop.effectivearea end
+function get_label(prop::EffectiveModeArea) return "Effective Mode Area (m²)" end
+function get_label(prop::CoreFraction) return "Core Fraction" end
+function get_label(prop::EffectiveRefractiveIndex) "Effective Refractive Index" end
+"""
+AbstractOpticalProperty is callable. Giving a light source will return the
+value of the AbstractOpticalProperty interpolated at that point
+"""
+function (prop::AbstractOpticalProperty)(light::AbstractLight)
+    interp(get_property(prop), light)
+end
+
 
 function circumference(res::CircularResonator) 2pi*res.radius end
 function circumference(res::RacetrackResonator) 2pi*res.radius + 2*res.length end

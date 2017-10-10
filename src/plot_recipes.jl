@@ -34,10 +34,13 @@
 end
 
 @recipe function f(optical_property::AbstractOpticalProperty)
-    fs = frequency(optical_property)
-    λs = wavelength(optical_property)
+    fs = frequency(optical_property)/1e12 #plot in THz
+    λs = wavelength(optical_property)*1e9 #plot in nm
     @series begin
+        xlabel := "Frequency (THz)"
+        ylabel := get_label(optical_property)
         seriestype := :path
-        λs, get_property(optical_property)
+        xmirror := true
+        fs, get_property(optical_property)
     end
 end
