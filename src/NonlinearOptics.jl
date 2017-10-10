@@ -1,4 +1,5 @@
 module NonlinearOptics
+    using Polynomials
     using DiffEqBase
     using Juno
     using RecursiveArrayTools, MuladdMacro, Parameters

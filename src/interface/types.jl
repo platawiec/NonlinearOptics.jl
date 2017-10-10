@@ -1,9 +1,9 @@
-abstract type AbstractLight end
+abstract type AbstractSource end
 
-struct Frequency <: AbstractLight
+struct Frequency <: AbstractSource
     f::Real
 end
-struct Wavelength <: AbstractLight
+struct Wavelength <: AbstractSource
     λ::Real
 end
 
@@ -27,17 +27,17 @@ end
 abstract type AbstractOpticalProperty end
 
 struct EffectiveRefractiveIndex <: AbstractOpticalProperty
-    light::Vector{Wavelength}
+    source::Vector{Wavelength}
     effectiveindex::Vector{Real}
 end
 struct CoreFraction <: AbstractOpticalProperty
-    light::Vector{AbstractLight}
+    source::Vector{AbstractSource}
     corefraction::Vector{Real}
 end
 CoreFraction() = CoreFraction([Wavelength(0.0)], [1.0])
 
 struct EffectiveModeArea <: AbstractOpticalProperty
-    light::Vector{AbstractLight}
+    source::Vector{AbstractSource}
     effectivearea::Vector{Real}
 end
 
