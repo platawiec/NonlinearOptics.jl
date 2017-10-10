@@ -32,3 +32,12 @@
         end
     end
 end
+
+@recipe function f(optical_property::AbstractOpticalProperty)
+    fs = frequency(optical_property)
+    λs = wavelength(optical_property)
+    @series begin
+        seriestype := :path
+        λs, get_property(optical_property)
+    end
+end

@@ -19,6 +19,11 @@ abstract type AbstractDielectric end
 struct DielectricCoefficient <: AbstractDielectric end
 struct DielectricTensor <: AbstractDielectric end
 
+struct Material <: AbstractMaterial
+    raman::AbstractRamanResponse
+    ϵ::AbstractDielectric
+end
+
 abstract type AbstractOpticalProperty end
 
 struct EffectiveRefractiveIndex <: AbstractOpticalProperty
@@ -29,32 +34,35 @@ struct CoreFraction <: AbstractOpticalProperty
     light::Vector{AbstractLight}
     corefraction::Vector{Real}
 end
+CoreFraction([Wavelength(0.0)], [1.0]) = CoreFraction()
+
 struct EffectiveModeArea <: AbstractOpticalProperty
     light::Vector{AbstractLight}
     effectivearea::Vector{Real}
 end
+
+struct Mode
+    effectiveindex::EffectiveRefractiveIndex
+    effectivearea::EffectiveModeArea
+    corefraction::CoreFraction
+end
+Mode(effectiveindex, effectivearea, CoreFraction()) = Mode(effectiveindex, effectivearea)
 
 abstract type AbstractStructure end
 
 struct Waveguide <: AbstractStructure
     length::Real
     orientation::Int
-    effectiveindex::EffectiveRefractiveIndex
-    effectivearea::EffectiveModeArea
-    corefraction::CoreFraction
+    modes::Vector{Mode}
 end
 abstract type AbstractResonator <: AbstractStructure end
 struct CircularResonator <: AbstractResonator
     radius::Real
-    effectiveindex::EffectiveRefractiveIndex
-    effectivearea::EffectiveModeArea
-    corefraction::CoreFraction
+    modes::Vector{Mode}
 end
 struct RacetrackResonator <: AbstractResonator
     radius::Real
     length::Real
     orientation::Int
-    effectiveindex::EffectiveRefractiveIndex
-    effectivearea::EffectiveModeArea
-    corefraction::CoreFraction
+    modes::Vector{Mode}
 end
