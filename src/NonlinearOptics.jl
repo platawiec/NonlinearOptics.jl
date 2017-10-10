@@ -14,6 +14,10 @@ module NonlinearOptics
 
     abstract type AbstractNLSEAlgorithm <: DEAlgorithm end
 
+    const c = 2.99792458e8
+
+    include("interface/types.jl")
+    include("interface/interface.jl")
     include("diffeqs/problems.jl")
     include("diffeqs/algorithms.jl")
     include("diffeqs/solutions.jl")
