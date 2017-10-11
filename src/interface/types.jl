@@ -28,12 +28,12 @@ end
 
 abstract type AbstractOpticalProperty{T} end
 
-struct GenericOpticalProperty{T} <: AbstractOpticalProperty{T}
+mutable struct GenericOpticalProperty{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
     property::Vector{T}
     label::String
     fit_func::ScaledFit{T, Poly{T}}
-    GenericOpticalProperty{T}(s, p, label, f) where T = fit(new(s, p, label))
+    GenericOpticalProperty{T}(s, p, label) where T = fit(new(s, p, label))
 end
 function GenericOpticalProperty(source, property, label)
     GenericOpticalProperty{eltype(property)}(source, property, label)
@@ -49,7 +49,7 @@ function EffectiveRefractiveIndex(source, property)
     EffectiveRefractiveIndex{eltype(property)}(source, property)
 end
 
-struct CoreFraction{T} <: AbstractOpticalProperty{T}
+mutable struct CoreFraction{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
     corefraction::Vector{T}
     fit_func::ScaledFit{T, Poly{T}}
@@ -58,16 +58,16 @@ end
 CoreFraction() = CoreFraction([Wavelength(0.0)], [1.0])
 CoreFraction(s, p) = CoreFraction{eltype(p)}(s, p)
 
-struct EffectiveModeArea{T} <: AbstractOpticalProperty{T}
+mutable struct EffectiveModeArea{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
     effectivearea::Vector{T}
     fit_func::ScaledFit{T, Poly{T}}
     EffectiveModeArea{T}(s, p) where T = fit(new(s, p))
 end
-EffectiveModeArea(s, p) = EffectiveModeaArea{eltype(p)}(s, p)
+EffectiveModeArea(s, p) = EffectiveModeArea{eltype(p)}(s, p)
 
 abstract type AbstractMode end
-struct Mode <: AbstractMode
+mutable struct Mode <: AbstractMode
     effectiveindex::EffectiveRefractiveIndex
     effectivearea::EffectiveModeArea
     corefraction::CoreFraction

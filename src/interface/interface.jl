@@ -51,12 +51,13 @@ returns the dispersion of the mode at a given wavelength up to
 the given order for the structure's modes
 """
 function get_beta(mode::Mode, source::AbstractSource, numorders::Int)
+    ω = getω(mode.effectiveindex)
     β₀ = ω/c .* get_property(mode.effectiveindex)
-    β = GenericOpticalProperty(mode.f, β₀, "β")
+    β = GenericOpticalProperty(frequency(mode.effectiveindex), β₀, "β")
     ω_query = getω(source)
-    β_atquery = zeros(typeof(β₀), numorders)
+    β_atquery = zeros(eltype(β₀), numorders+1)
     for order=0:numorders
-        β_atquery[order+1] = der(β, order=order)(ω_query)
+        β_atquery[order+1] = der(β, ω_query; order=order)
     end
     return β_atquery
 end
