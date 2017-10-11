@@ -17,6 +17,7 @@ module NonlinearOptics
 
     const c = 2.99792458e8
 
+    include("interface/fit_util.jl")
     include("interface/types.jl")
     include("interface/interface.jl")
     include("diffeqs/problems.jl")

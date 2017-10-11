@@ -26,27 +26,51 @@ end
 
 abstract type AbstractOpticalProperty end
 
-struct EffectiveRefractiveIndex <: AbstractOpticalProperty
-    source::Vector{Wavelength}
-    effectiveindex::Vector{Real}
+struct GenericOpticalProperty{T} <: AbstractOpticalProperty
+    source::Vector{AbstractSource}
+    property::Vector{T}
+    fit_func::ScaledFit{T, Poly}
+    label::String
 end
+function GenericOpticalProperty(source, property, label)
+    return GenericOpticalProperty{eltype(property)}(
+        source, property, get_fit, name
+    )
+end
+
+struct EffectiveRefractiveIndex{T} <: AbstractOpticalProperty{T}
+    source::Vector{AbstractSource}
+    effectiveindex::Vector{T}
+    fit_func::ScaledFit{T, Poly}
+end
+EffectiveRefractiveIndex(s, prop) = EffectiveRefractiveIndex{eltype(prop)}(s, prop)
+
 struct CoreFraction <: AbstractOpticalProperty
     source::Vector{AbstractSource}
-    corefraction::Vector{Real}
+    corefraction::Vector{T}
+    fit_func::ScaledFit{T, Poly}
 end
 CoreFraction() = CoreFraction([Wavelength(0.0)], [1.0])
 
-struct EffectiveModeArea <: AbstractOpticalProperty
+struct EffectiveModeArea{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
-    effectivearea::Vector{Real}
+    effectivearea::Vector{T}
+    fit_func::ScaledFit{T, Poly}
 end
 
-struct Mode
+abstract type AbstractMode end
+struct Mode <: AbstractMode
     effectiveindex::EffectiveRefractiveIndex
     effectivearea::EffectiveModeArea
     corefraction::CoreFraction
 end
 Mode(effectiveindex, effectivearea) = Mode(effectiveindex, effectivearea, CoreFraction())
+
+struct ToyMode{betaType, areaType, coreType} <: AbstractMode
+    beta::Vector{betaType}
+    effectivearea::areaType
+    corefraction::coreType
+end
 
 abstract type AbstractStructure end
 
