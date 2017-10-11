@@ -5,6 +5,7 @@ function frequency(source::Frequency) source.f end
 function frequency(prop::AbstractOpticalProperty) frequency.(prop.source) end
 function wavelength(prop::AbstractOpticalProperty) wavelength.(prop.source) end
 function wavelength(x) wavelength(convert(Wavelength, x)) end
+function frequency(x) frequency(convert(Wavelength, x)) end
 function getω(source) 2pi*frequency(source) end
 
 function get_property(prop::EffectiveRefractiveIndex) prop.effectiveindex end
@@ -26,8 +27,8 @@ end
 """
 Alias for der
 """
-function der(prop::AbstractOpticalProperty, query, order=1)
-    der(prop.fit_func, query, order=order)
+function der(prop::AbstractOpticalProperty, query; order=1)
+    der(prop.fit_func, query; order=order)
 end
 
 
