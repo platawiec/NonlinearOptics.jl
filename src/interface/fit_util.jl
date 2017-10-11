@@ -14,3 +14,19 @@ end
 Alias for polyder when fit function is polynomial
 """
 function der(f::Poly, order=1) polyder(f, order) end
+
+"""
+Macro for call work-around See JuliaLang Pull #23168
+https://github.com/JuliaLang/julia/pull/23168
+"""
+t_info(ex::Symbol) = (ex, tuple())
+t_info(ex::Expr) = ex.head == :(<:) ? t_info(ex.args[1]) : (ex, ex.args[2:end])
+macro ev(fsig)
+    @assert fsig.head == :type
+    tname, tparams = t_info(fsig.args[2])
+    sym = esc(:x)
+    return quote
+        $(esc(fsig))
+        ($sym::$tname)(args...) = prop_call($sym, args...)
+    end
+end

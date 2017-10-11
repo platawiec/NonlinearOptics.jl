@@ -24,38 +24,40 @@ struct Material <: AbstractMaterial
     ϵ::AbstractDielectric
 end
 
-abstract type AbstractOpticalProperty end
+abstract type AbstractOpticalProperty{T} end
 
-struct GenericOpticalProperty{T} <: AbstractOpticalProperty
+struct GenericOpticalProperty{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
     property::Vector{T}
-    fit_func::ScaledFit{T, Poly}
     label::String
+    fit_func::ScaledFit{T, Poly{T}}
+    GenericOpticalProperty{T}(s, p, label, f) where T = fit(new(s, p, label))
 end
 function GenericOpticalProperty(source, property, label)
-    return GenericOpticalProperty{eltype(property)}(
-        source, property, get_fit, name
-    )
+    GenericOpticalProperty{eltype(property)}(source, property, label)
 end
 
-struct EffectiveRefractiveIndex{T} <: AbstractOpticalProperty{T}
+mutable struct EffectiveRefractiveIndex{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
     effectiveindex::Vector{T}
-    fit_func::ScaledFit{T, Poly}
+    fit_func::ScaledFit{T, Poly{T}}
+    EffectiveRefractiveIndex{T}(s, p) where T = fit(new(s, p))
 end
-EffectiveRefractiveIndex(s, prop) = EffectiveRefractiveIndex{eltype(prop)}(s, prop)
+function EffectiveRefractiveIndex(source, property)
+    EffectiveRefractiveIndex{eltype(property)}(source, property)
+end
 
-struct CoreFraction <: AbstractOpticalProperty
+struct CoreFraction{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
     corefraction::Vector{T}
-    fit_func::ScaledFit{T, Poly}
+    fit_func::ScaledFit{T, Poly{T}}
 end
 CoreFraction() = CoreFraction([Wavelength(0.0)], [1.0])
 
 struct EffectiveModeArea{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
     effectivearea::Vector{T}
-    fit_func::ScaledFit{T, Poly}
+    fit_func::ScaledFit{T, Poly{T}}
 end
 
 abstract type AbstractMode end

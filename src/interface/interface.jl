@@ -2,8 +2,9 @@ function wavelength(source::Wavelength) source.λ end
 function wavelength(source::Frequency) c/source.f end
 function frequency(source::Wavelength) c/source.λ end
 function frequency(source::Frequency) source.f end
-function frequency(prop::AbstractOpticalProperty{T}) frequency.(prop.source) end
-function wavelength(prop::AbstractOpticalProperty{T}) wavelength.(prop.source) end
+function frequency(prop::AbstractOpticalProperty) frequency.(prop.source) end
+function wavelength(prop::AbstractOpticalProperty) wavelength.(prop.source) end
+function wavelength(x) wavelength(convert(Wavelength, x)) end
 function getω(source) 2pi*frequency(source) end
 
 function get_property(prop::EffectiveRefractiveIndex) prop.effectiveindex end
@@ -19,13 +20,13 @@ function get_label(prop::GenericOpticalProperty) prop.label end
 AbstractOpticalProperty is callable. Giving a source source will return the
 value of the AbstractOpticalProperty interpolated at that point
 """
-function (prop::AbstractOpticalProperty{T})(source::AbstractSource)
+function prop_call(prop::AbstractOpticalProperty, source::AbstractSource)
     prop.fit_func(getω(source))
 end
 """
 Alias for der
 """
-function der(prop::AbstractOpticalProperty{T}, query, order=1)
+function der(prop::AbstractOpticalProperty, query, order=1)
     der(prop.fit_func, query, order=order)
 end
 
@@ -33,12 +34,13 @@ end
 function circumference(res::CircularResonator) 2pi*res.radius end
 function circumference(res::RacetrackResonator) 2pi*res.radius + 2*res.length end
 
-function fit(prop::AbstractOpticalProperty{T})
-    ω = getω(s)
+function fit(prop::AbstractOpticalProperty, poly_order=12)
+    ω = getω(prop)
     μ = mean(ω)
     σ = std(ω)
-    p = polyfit((ω-μ)/σ, get_property(prop))
-    ScaledFit(μ, σ, p)
+    p = polyfit((ω-μ)/σ, get_property(prop), poly_order)
+    prop.fit_func = ScaledFit(μ, σ, p)
+    prop
 end
 
 """
