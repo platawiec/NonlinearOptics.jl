@@ -1,11 +1,13 @@
 abstract type AbstractSource end
 
-struct Frequency <: AbstractSource
-    f::Real
+struct Frequency{T} <: AbstractSource
+    f::T
 end
-struct Wavelength <: AbstractSource
-    λ::Real
+Frequency(f) = Frequency{typeof(f)}(f)
+struct Wavelength{T} <: AbstractSource
+    λ::T
 end
+Wavelength(λ) = Wavelength{typeof(λ)}(λ)
 
 abstract type AbstractMaterial end
 
