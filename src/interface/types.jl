@@ -53,14 +53,18 @@ struct CoreFraction{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
     corefraction::Vector{T}
     fit_func::ScaledFit{T, Poly{T}}
+    CoreFraction{T}(s, p) where T = fit(new(s, p))
 end
 CoreFraction() = CoreFraction([Wavelength(0.0)], [1.0])
+CoreFraction(s, p) = CoreFraction{eltype(p)}(s, p)
 
 struct EffectiveModeArea{T} <: AbstractOpticalProperty{T}
     source::Vector{AbstractSource}
     effectivearea::Vector{T}
     fit_func::ScaledFit{T, Poly{T}}
+    EffectiveModeArea{T}(s, p) where T = fit(new(s, p))
 end
+EffectiveModeArea(s, p) = EffectiveModeaArea{eltype(p)}(s, p)
 
 abstract type AbstractMode end
 struct Mode <: AbstractMode
@@ -78,17 +82,17 @@ end
 
 abstract type AbstractStructure end
 
-struct Waveguide <: AbstractStructure
+mutable struct Waveguide <: AbstractStructure
     length::Real
     orientation::Int
     modes::Vector{Mode}
 end
 abstract type AbstractResonator <: AbstractStructure end
-struct CircularResonator <: AbstractResonator
+mutable struct CircularResonator <: AbstractResonator
     radius::Real
     modes::Vector{Mode}
 end
-struct RacetrackResonator <: AbstractResonator
+mutable struct RacetrackResonator <: AbstractResonator
     radius::Real
     length::Real
     orientation::Int
