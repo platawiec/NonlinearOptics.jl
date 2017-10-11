@@ -1,14 +1,11 @@
 using Base.Test
 using NonlinearOptics
 
-@testset "NonlinearOptics" begin
-    for (root, dirs, files) in walkdir(@__DIR__)
-        @time @testset "$dir" for dir in dirs
-            @time @testset "$file" for file in files include(file) end
-        end
+detected_tests = filter(name->startswith(name, "test_") && endswith(name, ".jl"),
+                        readdir(@__DIR__))
+
+@time @testset "NonlinearOptics" begin
+    @time @testset "$(test[6:(end-3)])" for test in detected_tests
+        include(test)
     end
 end
-
-
-
-@time @testset "NLSE Tests" begin include("nlse/nlse_tests.jl") end
