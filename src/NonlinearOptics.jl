@@ -30,15 +30,14 @@ module NonlinearOptics
     include("diffeqs/premade_problems.jl")
     include("plot_recipes.jl")
 
-    export NLSEProblem
-
-    export NLSESolution
-
-    export AbstractNLSEAlgorithm, SymmetrizedSplitStep
-
+    export NLSEProblem, NLSESolution, SymmetrizedSplitStep
     export prob_bright_soliton, prob_linear_pulse, prob_dispersive_pulse,
             prob_LL
-
     export solve
+
+    export Wavelength, Frequency, c
+    export GenericOpticalProperty, EffectiveModeArea, EffectiveRefractiveIndex,
+           CoreFraction
+    export frequency, wavelength, getω, get_beta, get_FSR, get_groupindex
 
 end # module
