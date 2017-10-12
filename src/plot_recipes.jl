@@ -33,7 +33,7 @@
     end
 end
 
-@recipe function f(optical_property::AbstractOpticalProperty)
+@recipe function f(optical_property::AbstractOpticalAttr)
     fs = frequency(optical_property)/1e12 #plot in THz
     λs = wavelength(optical_property)*1e9 #plot in nm
     @series begin

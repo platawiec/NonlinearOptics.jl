@@ -37,8 +37,7 @@ module NonlinearOptics
     export solve
 
     export Wavelength, Frequency, c
-    export GenericOpticalProperty, EffectiveModeArea, EffectiveRefractiveIndex,
-           CoreFraction
+    export OpticalAttr
     export Mode
     export CircularResonator, RacetrackResonator, Waveguide
     export frequency, wavelength, getω, get_beta, get_FSR, get_groupindex,

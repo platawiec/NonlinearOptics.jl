@@ -2,46 +2,38 @@ function wavelength(source::Wavelength) source.λ end
 function wavelength(source::Frequency) c/source.f end
 function frequency(source::Wavelength) c/source.λ end
 function frequency(source::Frequency) source.f end
-function frequency(prop::AbstractOpticalProperty) frequency.(prop.source) end
-function wavelength(prop::AbstractOpticalProperty) wavelength.(prop.source) end
+function frequency(attr::AbstractOpticalAttr) frequency.(attr.source) end
+function wavelength(attr::AbstractOpticalAttr) wavelength.(attr.source) end
 function wavelength(x) wavelength(convert(Wavelength, x)) end
 function frequency(x) frequency(convert(Wavelength, x)) end
 function getω(source) 2pi*frequency(source) end
 
-function get_property(prop::EffectiveRefractiveIndex) prop.effectiveindex end
-function get_property(prop::CoreFraction) prop.corefraction end
-function get_property(prop::EffectiveModeArea) prop.effectivearea end
-function get_property(prop::GenericOpticalProperty) prop.property end
+function get_attr(attr::OpticalAttr) attr.property end
 
-function get_label(prop::EffectiveModeArea) "Effective Mode Area (m²)" end
-function get_label(prop::CoreFraction) "Core Fraction" end
-function get_label(prop::EffectiveRefractiveIndex) "Effective Refractive Index" end
-function get_label(prop::GenericOpticalProperty) prop.label end
+function get_label(attr::OpticalAttr) attr.label end
 """
-AbstractOpticalProperty is callable. Giving a source source will return the
-value of the AbstractOpticalProperty interpolated at that point
+OpticalAttr is callable. Giving a source source will return the
+value of the AbstractOpticalAttr interpolated at that point
 """
-function prop_call(prop::AbstractOpticalProperty, source::AbstractSource)
-    prop.fit_func(getω(source))
-end
+(attr::OpticalAttr)(source::AbstractSource) = attr.fit_func(getω(source))
 """
 Alias for der
 """
-function der(prop::AbstractOpticalProperty, query; order=1)
-    der(prop.fit_func, query; order=order)
+function der(attr::AbstractOpticalAttr, query; order=1)
+    der(attr.fit_func, query; order=order)
 end
 
 
 function circumference(res::CircularResonator) 2pi*res.radius end
 function circumference(res::RacetrackResonator) 2pi*res.radius + 2*res.length end
 
-function fit(prop::AbstractOpticalProperty, poly_order=12)
-    ω = getω(prop)
+function fit(attr::AbstractOpticalAttr, poly_order=12)
+    ω = getω(attr)
     μ = mean(ω)
     σ = std(ω)
-    p = polyfit((ω-μ)/σ, get_property(prop), poly_order)
-    prop.fit_func = ScaledFit(μ, σ, p)
-    prop
+    p = polyfit((ω-μ)/σ, get_attr(attr), poly_order)
+    attr.fit_func = ScaledFit(μ, σ, p)
+    attr
 end
 
 """
@@ -52,8 +44,8 @@ the given order for the structure's modes
 """
 function get_beta(mode::Mode, source::AbstractSource, numorders::Int)
     ω = getω(mode.effectiveindex)
-    β₀ = ω/c .* get_property(mode.effectiveindex)
-    β = GenericOpticalProperty(frequency(mode.effectiveindex), β₀, "β")
+    β₀ = ω/c .* get_attr(mode.effectiveindex)
+    β = OpticalAttr(frequency(mode.effectiveindex), β₀, "β")
     ω_query = getω(source)
     β_atquery = zeros(eltype(β₀), numorders+1)
     for order=0:numorders
