@@ -21,6 +21,7 @@ module NonlinearOptics
     include("interface/types.jl")
     include("interface/conversions.jl")
     include("interface/interface.jl")
+    include("interface/dispersion.jl")
     include("diffeqs/problems.jl")
     include("diffeqs/algorithms.jl")
     include("diffeqs/solutions.jl")
