@@ -6,6 +6,7 @@ the given order for the structure's modes
 """
 function get_beta(effectiveindex, source, numorders::Int)
     ω = getω(effectiveindex)
+    length(ω) == 1 && error("the given refractive index is non-dispersive")
     β₀ = ω/c .* get_attr(effectiveindex)
     β = OpticalAttr(frequency(effectiveindex), β₀, "β")
     ω_query = getω(source)
