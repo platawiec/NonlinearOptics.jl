@@ -14,7 +14,7 @@ end
 Alias for polyder when fit function is polynomial
 """
 function der(f::Poly; order=1) polyder(f, order) end
-
+function der(f::Poly, query; order=1) polyder(f, order)(query) end
 """
 Macro for call work-around See JuliaLang Pull #23168
 https://github.com/JuliaLang/julia/pull/23168

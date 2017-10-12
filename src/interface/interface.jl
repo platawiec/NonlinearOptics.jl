@@ -62,7 +62,7 @@ returns the group index of the mode at a given wavelength
 function get_groupindex(mode::Mode, source::AbstractSource)
     β = get_beta(mode, source, 1)
     n_group = β[1] + getω(source)*β[2]
-    return n_group
+    n_group
 end
 
 """

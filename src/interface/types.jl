@@ -26,9 +26,9 @@ struct Material <: AbstractMaterial
     ϵ::AbstractDielectric
 end
 
-abstract type AbstractOpticalAttr{T} end
+abstract type AbstractOpticalAttr end
 
-mutable struct OpticalAttr{T, F} <: AbstractOpticalAttr{T}
+mutable struct OpticalAttr{T, F} <: AbstractOpticalAttr
     source::Vector{AbstractSource}
     property::Vector{T}
     label::String
