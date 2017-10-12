@@ -55,7 +55,7 @@ mutable struct Mode <: AbstractMode
     effectivearea::OpticalAttr
     corefraction::OpticalAttr
 end
-Mode(effectiveindex, effectivearea) = Mode(effectiveindex, effectivearea, CoreFraction())
+Mode(n_eff, area_eff) = Mode(n_eff, area_eff, OpticalAttr(1.0, "Core Fraction"))
 
 struct ToyMode{betaType, areaType, coreType} <: AbstractMode
     beta::Vector{betaType}

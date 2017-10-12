@@ -6,5 +6,9 @@ Aeff = OpticalAttr(1e-12, "Aeff (m²)")
 
 mode = Mode(neff, Aeff, corefrac)
 
-model_simple = CircularResonator(20e-6)
-add_mode!(model_simple, mode)
+res_simple = CircularResonator(20e-6)
+add_mode!(res_simple, mode)
+source_simple = Laser()
+model_simple = Model(res_simple, source_simple)
+
+#solve(model_simple, DynamicLL()) (DynamicLL, DynamicIkeda, SSLL, SSIkeda, NLSE)
