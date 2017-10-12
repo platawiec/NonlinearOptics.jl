@@ -65,19 +65,23 @@ end
 
 abstract type AbstractStructure end
 
-mutable struct Waveguide <: AbstractStructure
-    length::Real
+mutable struct Waveguide{T} <: AbstractStructure
+    length::T
     orientation::Int
     modes::Vector{Mode}
 end
+Waveguide(length, orientation) = Waveguide{typeof(length)}(length, orientation, Mode[])
+
 abstract type AbstractResonator <: AbstractStructure end
-mutable struct CircularResonator <: AbstractResonator
-    radius::Real
+mutable struct CircularResonator{T} <: AbstractResonator
+    radius::T
     modes::Vector{Mode}
 end
-mutable struct RacetrackResonator <: AbstractResonator
-    radius::Real
-    length::Real
+CircularResonator(radius) = CircularResonator{typeof(radius)}(radius, Mode[])
+mutable struct RacetrackResonator{T} <: AbstractResonator
+    radius::T
+    length::T
     orientation::Int
     modes::Vector{Mode}
 end
+RacetrackResonator(radius, length, orientation) = RacetrackResonator{typeof(radius)}(radius, length, orientation, Mode[])

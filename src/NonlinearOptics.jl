@@ -43,5 +43,7 @@ module NonlinearOptics
     export CircularResonator, RacetrackResonator, Waveguide
     export frequency, wavelength, getω, get_beta, get_FSR, get_groupindex,
            get_property, get_label
+    export add_mode!
+    export model_simple
 
 end # module
