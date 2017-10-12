@@ -15,7 +15,7 @@ function get_label(attr::OpticalAttr) attr.label end
 OpticalAttr is callable. Giving a source source will return the
 value of the AbstractOpticalAttr interpolated at that point
 """
-(attr::OpticalAttr)(source::AbstractSource) = attr.fit_func(getω(source))
+(attr::OpticalAttr)(source) = attr.fit_func(getω(source))
 """
 Alias for der
 """

@@ -28,15 +28,25 @@ end
 
 abstract type AbstractOpticalAttr{T} end
 
-mutable struct OpticalAttr{T} <: AbstractOpticalAttr{T}
+mutable struct OpticalAttr{T, F} <: AbstractOpticalAttr{T}
     source::Vector{AbstractSource}
     property::Vector{T}
     label::String
-    fit_func::ScaledFit{T, Poly{T}}
-    OpticalAttr{T}(s, p, label) where T = fit(new(s, p, label))
+    fit_func::F
+    OpticalAttr{T, F}(s, p, label) where {T, F} = fit(new(s, p, label))
+    OpticalAttr{T, F}(s, p, label, f) where {T, F} = new(s, p, label, f)
+end
+
+function OpticalAttr(source, property, label, fit_func)
+    OpticalAttr{eltype(property), typeof(fit_func)}(source, property, label, fit_func)
 end
 function OpticalAttr(source, property, label)
-    OpticalAttr{eltype(property)}(source, property, label)
+    T = eltype(property)
+    OpticalAttr{T, ScaledFit{T, Poly{T}}}(source, property, label)
+end
+function OpticalAttr(property::Number, label)
+    T = typeof(property)
+    OpticalAttr{T, Poly{T}}([Wavelength(0.0)], [property], label, Poly([property]))
 end
 
 abstract type AbstractMode end
