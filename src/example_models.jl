@@ -8,4 +8,4 @@ Aeff_mode = OpticalAttr(lam, Aeff, "Aeff (m²)")
 
 mode = Mode(neff_mode, Aeff_mode, corefrac_mode)
 
-#get_groupindex(mode, Wavelength(700e-9))
+get_groupindex(mode.effectiveindex, Wavelength(700e-9))

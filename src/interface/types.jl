@@ -29,7 +29,7 @@ end
 abstract type AbstractOpticalAttr end
 
 mutable struct OpticalAttr{T, F} <: AbstractOpticalAttr
-    source::Vector{AbstractSource}
+    source::Vector{Frequency}
     property::Vector{T}
     label::String
     fit_func::F
@@ -46,7 +46,7 @@ function OpticalAttr(source, property, label)
 end
 function OpticalAttr(property::Number, label)
     T = typeof(property)
-    OpticalAttr{T, Poly{T}}([Wavelength(0.0)], [property], label, Poly([property]))
+    OpticalAttr{T, Poly{T}}([Frequency(0.0)], [property], label, Poly([property]))
 end
 
 abstract type AbstractMode end

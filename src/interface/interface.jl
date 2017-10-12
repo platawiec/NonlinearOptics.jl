@@ -5,7 +5,7 @@ function frequency(source::Frequency) source.f end
 function frequency(attr::AbstractOpticalAttr) frequency.(attr.source) end
 function wavelength(attr::AbstractOpticalAttr) wavelength.(attr.source) end
 function wavelength(x) wavelength(convert(Wavelength, x)) end
-function frequency(x) frequency(convert(Wavelength, x)) end
+function frequency(x) frequency(convert(Frequency, x)) end
 function getω(source) 2pi*frequency(source) end
 
 function get_attr(attr::OpticalAttr) attr.property end
@@ -42,10 +42,10 @@ end
 returns the dispersion of the mode at a given wavelength up to
 the given order for the structure's modes
 """
-function get_beta(mode::Mode, source::AbstractSource, numorders::Int)
-    ω = getω(mode.effectiveindex)
-    β₀ = ω/c .* get_attr(mode.effectiveindex)
-    β = OpticalAttr(frequency(mode.effectiveindex), β₀, "β")
+function get_beta(effectiveindex, source, numorders::Int)
+    ω = getω(effectiveindex)
+    β₀ = ω/c .* get_attr(effectiveindex)
+    β = OpticalAttr(frequency(effectiveindex), β₀, "β")
     ω_query = getω(source)
     β_atquery = zeros(eltype(β₀), numorders+1)
     for order=0:numorders
@@ -59,9 +59,9 @@ end
 
 returns the group index of the mode at a given wavelength
 """
-function get_groupindex(mode::Mode, source::AbstractSource)
-    β = get_beta(mode, source, 1)
-    n_group = β[1] + getω(source)*β[2]
+function get_groupindex(effindex, source)
+    β = get_beta(effindex, source, 1)
+    n_group = β[2] * c
     n_group
 end
 
