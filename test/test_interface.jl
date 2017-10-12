@@ -1,6 +1,4 @@
-"""
-Tests for the ways various types interface with eachother
-"""
+# Tests for the ways various types interface with eachother
 
 @test frequency(1.0) ≈ c
 @test wavelength(1.0) ≈ 1.0

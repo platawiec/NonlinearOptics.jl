@@ -1,3 +1,1 @@
-"""
-Tests various functions for linear optics
-"""
+# Tests various functions for linear optics

@@ -1,3 +1,1 @@
-"""
-Tests construction of various types
-"""
+# Tests construction of various types

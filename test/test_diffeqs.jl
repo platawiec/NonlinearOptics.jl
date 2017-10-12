@@ -1,5 +1,3 @@
-using NonlinearOptics
-
 # Define a soliton problem
 prob = prob_bright_soliton
 
