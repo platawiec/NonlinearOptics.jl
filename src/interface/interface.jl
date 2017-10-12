@@ -5,7 +5,7 @@ function frequency(source::Frequency) source.f end
 function frequency(attr::AbstractOpticalAttr) frequency.(attr.source) end
 function wavelength(attr::AbstractOpticalAttr) wavelength.(attr.source) end
 function wavelength(x) wavelength(convert(Wavelength, x)) end
-function frequency(x) frequency(convert(Frequency, x)) end
+function frequency(x) frequency(convert(Wavelength, x)) end
 function getω(source) 2pi*frequency(source) end
 
 function get_attr(attr::OpticalAttr) attr.property end
