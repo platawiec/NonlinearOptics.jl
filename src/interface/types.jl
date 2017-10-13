@@ -103,8 +103,6 @@ end
 CWLaser(f, δ, P) = CWLaser{typeof(δ), typeof(P)}(f, δ, P)
 mutable struct PulsedLaser{T, F} <: AbstractLaser
     frequency::Frequency
-    repetition_rate::Frequency
-    peak_power::T
     pulse_shape::F
 end
 PulsedLaser(f, reprate, P, pulse_init) = PulsedLaser{typeof(P), typeof(pulse_shape)}(

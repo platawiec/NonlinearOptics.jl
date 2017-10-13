@@ -11,8 +11,8 @@ zmesh = linspace(-100.0, 100.0, 1024)
 prob_linear_pulse = NLSEProblem(N_linear, D_linear, u0, tspan, zmesh)
 
 
-γnl = 9
-β₂ = -3
+γnl = 9.0
+β₂ = -3.0
 
 N = (t, u) -> 1im * γnl * abs2.(u) .* u
 D = (k, u) -> 1im * β₂ / 2 * k.^2
