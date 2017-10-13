@@ -7,7 +7,8 @@ loss = OpticalAttr(1e-3, "Loss (1/m)")
 
 mode = Mode(neff, Aeff, loss, corefrac)
 
-res_simple = CircularResonator(20e-6)
+# 10 mm long waveguide in 100 orientation
+res_simple = Waveguide(0.01, 100)
 add_mode!(res_simple, mode)
 #source_simple = Laser()
 #model_simple = Model(res_simple, source_simple)

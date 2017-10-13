@@ -1,10 +1,13 @@
+# This can probably be cleaned up and simplifed with a little thought
 function wavelength(source::Wavelength) source.λ end
 function wavelength(source::Frequency) c/source.f end
+function wavelength(attr::AbstractOpticalAttr) wavelength.(attr.source) end
+function wavelength(x) wavelength(convert(Wavelength, x)) end
+function wavelength(laser::AbstractLaser) wavelength(laser.frequency) end
 function frequency(source::Wavelength) c/source.λ end
 function frequency(source::Frequency) source.f end
 function frequency(attr::AbstractOpticalAttr) frequency.(attr.source) end
-function wavelength(attr::AbstractOpticalAttr) wavelength.(attr.source) end
-function wavelength(x) wavelength(convert(Wavelength, x)) end
+function frequency(laser::AbstractLaser) frequency(laser.frequency) end
 function frequency(x) frequency(convert(Wavelength, x)) end
 function getω(source) 2pi*frequency(source) end
 

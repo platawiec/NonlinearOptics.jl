@@ -77,18 +77,35 @@ mutable struct Waveguide{T} <: AbstractStructure
     orientation::Int
     modes::Vector{AbstractMode}
 end
-Waveguide(length, orientation) = Waveguide{typeof(length)}(length, orientation, AbstractMode[])
+Waveguide(l, orient) = Waveguide{typeof(l)}(l, orient, AbstractMode[])
 
 abstract type AbstractResonator <: AbstractStructure end
 mutable struct CircularResonator{T} <: AbstractResonator
     radius::T
     modes::Vector{AbstractMode}
 end
-CircularResonator(radius) = CircularResonator{typeof(radius)}(radius, AbstractMode[])
+CircularResonator(r) = CircularResonator{typeof(r)}(r, AbstractMode[])
 mutable struct RacetrackResonator{T} <: AbstractResonator
     radius::T
     length::T
     orientation::Int
     modes::Vector{AbstractMode}
 end
-RacetrackResonator(radius, length, orientation) = RacetrackResonator{typeof(radius)}(radius, length, orientation, AbstractMode[])
+RacetrackResonator(r, l, orient) = RacetrackResonator{typeof(r)}(
+                                                    r, l, orient, AbstractMode[])
+
+abstract type AbstractLaser end
+mutable struct CWLaser{T1, T2} <: AbstractLaser
+    frequency::Frequency
+    detuning::T1
+    power::T2
+end
+CWLaser(f, δ, P) = CWLaser{typeof(δ), typeof(P)}(f, δ, P)
+mutable struct PulsedLaser{T, F} <: AbstractLaser
+    frequency::Frequency
+    repetition_rate::Frequency
+    peak_power::T
+    pulse_shape::F
+end
+PulsedLaser(f, reprate, P, pulse_init) = PulsedLaser{typeof(P), typeof(pulse_shape)}(
+                                            f, reprate, P, pulse_init)
