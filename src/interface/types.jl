@@ -53,35 +53,42 @@ abstract type AbstractMode end
 mutable struct Mode <: AbstractMode
     effectiveindex::OpticalAttr
     effectivearea::OpticalAttr
+    linearloss::OpticalAttr
     corefraction::OpticalAttr
 end
-Mode(n_eff, area_eff) = Mode(n_eff, area_eff, OpticalAttr(1.0, "Core Fraction"))
+Mode(n_eff, area_eff) = Mode(n_eff, area_eff,
+                             OpticalAttr(0.0, "Linear Loss"),
+                             OpticalAttr(1.0, "Core Fraction"))
 
-struct ToyMode{betaType, areaType, coreType} <: AbstractMode
-    beta::Vector{betaType}
-    effectivearea::areaType
-    corefraction::coreType
+struct ToyMode <: AbstractMode
+    beta::Vector{OpticalAttr}
+    effectivearea::OpticalAttr
+    linearloss::OpticalAttr
+    corefraction::OpticalAttr
 end
+ToyMode(beta, area_eff) = ToyMode(beta, area_eff,
+                                  OpticalAttr(0.0, "Linear Loss (1/m)"),
+                                  OpticalAttr(1.0, "Core Fraction"))
 
 abstract type AbstractStructure end
 
 mutable struct Waveguide{T} <: AbstractStructure
     length::T
     orientation::Int
-    modes::Vector{Mode}
+    modes::Vector{AbstractMode}
 end
-Waveguide(length, orientation) = Waveguide{typeof(length)}(length, orientation, Mode[])
+Waveguide(length, orientation) = Waveguide{typeof(length)}(length, orientation, AbstractMode[])
 
 abstract type AbstractResonator <: AbstractStructure end
 mutable struct CircularResonator{T} <: AbstractResonator
     radius::T
-    modes::Vector{Mode}
+    modes::Vector{AbstractMode}
 end
-CircularResonator(radius) = CircularResonator{typeof(radius)}(radius, Mode[])
+CircularResonator(radius) = CircularResonator{typeof(radius)}(radius, AbstractMode[])
 mutable struct RacetrackResonator{T} <: AbstractResonator
     radius::T
     length::T
     orientation::Int
-    modes::Vector{Mode}
+    modes::Vector{AbstractMode}
 end
-RacetrackResonator(radius, length, orientation) = RacetrackResonator{typeof(radius)}(radius, length, orientation, Mode[])
+RacetrackResonator(radius, length, orientation) = RacetrackResonator{typeof(radius)}(radius, length, orientation, AbstractMode[])
