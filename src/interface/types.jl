@@ -122,3 +122,19 @@ mutable struct PulsedLaser{F} <: AbstractLaser
 end
 PulsedLaser(f, reprate, P, pulse_init) = PulsedLaser{typeof(pulse_init)}(
                                             f, derive_pulse())
+
+mutable struct Model
+    laser::AbstractLaser
+    structure::AbstractStructure
+end
+
+abstract type AbstractExperiment end
+abstract type AbstractDynamicExperiment end
+abstract type AbstractSteadyStateExperiment end
+struct DynamicLL <: AbstractDynamicExperiment end
+struct DynamicNLSE <: AbstractDynamicExperiment end
+struct DynamicIkeda <: AbstractDynamicExperiment end
+
+struct SteadyStateLL <: AbstractSteadyStateExperiment end
+struct SteadyStateNLSE <: AbstractSteadyStateExperiment end
+struct SteadyStateIkeda <: AbstractSteadyStateExperiment end

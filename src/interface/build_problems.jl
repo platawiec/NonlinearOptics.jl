@@ -1,3 +1,6 @@
+solve(model::Model, exp::DynamicLL)
+end
+
 """
     build_problem()
 Sets up a Lugatio-Lefever problem
