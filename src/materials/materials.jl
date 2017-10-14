@@ -1,8 +1,3 @@
-struct Material{T}
-    nonlinearindex::T
-end
-Material(nl_index) = Material{typeof(nl_index)}(nl_index)
-
 #TODO: currently placeholders
 const Diamond = Crystal(1.3e-19, 1.0, 1.0)
 const Silicon = Crystal(3e-18, 1.0, 1.0)
