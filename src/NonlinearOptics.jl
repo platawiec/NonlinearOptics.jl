@@ -21,6 +21,7 @@ module NonlinearOptics
     include("interface/types.jl")
     include("interface/conversions.jl")
     include("interface/interface.jl")
+    include("optics/optics_utils.jl")
     include("optics/dispersion.jl")
     include("optics/pulses.jl")
     include("diffeqs/problems.jl")
@@ -30,6 +31,8 @@ module NonlinearOptics
     include("diffeqs/integrators.jl")
     include("diffeqs/solve.jl")
     include("diffeqs/premade_problems.jl")
+    include("interface/build_problems.jl")
+    include("materials/materials.jl")
     include("plot_recipes.jl")
     include("example_models.jl")
 

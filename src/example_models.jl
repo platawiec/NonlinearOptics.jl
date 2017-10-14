@@ -8,9 +8,9 @@ loss = OpticalAttr(1e-3, "Loss (1/m)")
 mode = Mode(neff, Aeff, loss, corefrac)
 
 # 10 mm long waveguide in 100 orientation
-res_simple = Waveguide(0.01, 100)
+res_simple = CircularResonator(500e-6, SiO2)
 add_mode!(res_simple, mode)
-#source_simple = Laser()
+source_simple = CWLaser(Wavelength(1500e-9), 0.01, 1.0)
 #model_simple = Model(res_simple, source_simple)
 # Laser answers: δ₀ can change during experiment, ω₀, and Ein? All can be
 # parameters of cw laser. Solver ?s: How many dispersive orders

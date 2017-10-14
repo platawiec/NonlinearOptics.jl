@@ -12,19 +12,31 @@ Wavelength(λ) = Wavelength{typeof(λ)}(λ)
 abstract type AbstractMaterial end
 
 abstract type AbstractRamanResponse end
-
-struct RamanCoefficient <: AbstractRamanResponse end
+struct RamanCoefficient{T} <: AbstractRamanResponse
+    raman::T
+end
 struct RamanTensor <: AbstractRamanResponse end
+RamanCoefficient(raman) = RamanCoefficient{typeof(raman)}(raman)
 
 abstract type AbstractDielectric end
-
-struct DielectricCoefficient <: AbstractDielectric end
-struct DielectricTensor <: AbstractDielectric end
-
-struct Material <: AbstractMaterial
-    raman::AbstractRamanResponse
-    ϵ::AbstractDielectric
+struct DielectricCoefficient{T} <: AbstractDielectric
+    ϵ::T
 end
+struct DielectricTensor <: AbstractDielectric end
+DielectricCoefficient(ϵ) = DielectricCoefficient{typeof(ϵ)}(ϵ)
+
+struct Glass{T} <: AbstractMaterial
+    nonlinearindex::T
+    raman::RamanCoefficient
+    ϵ::DielectricCoefficient
+end
+struct Crystal{T} <: AbstractMaterial
+    nonlinearindex::T
+    raman::RamanTensor
+    ϵ::DielectricTensor
+end
+Glass(nl_index, r, ϵ) = Glass{typeof(nl_index)}(nl_index, RamanCoefficient(r), DielectricCoefficient(ϵ))
+Crystal(nl_index, r, ϵ) = Crystal{typeof(nl_index)}(nl_index, RamanTensor(), DielectricTensor())
 
 abstract type AbstractOpticalAttr end
 
@@ -75,24 +87,27 @@ abstract type AbstractStructure end
 mutable struct Waveguide{T} <: AbstractStructure
     length::T
     orientation::Int
+    material::AbstractMaterial
     modes::Vector{AbstractMode}
 end
-Waveguide(l, orient) = Waveguide{typeof(l)}(l, orient, AbstractMode[])
+Waveguide(l, orient, mat) = Waveguide{typeof(l)}(l, orient, mat, AbstractMode[])
 
 abstract type AbstractResonator <: AbstractStructure end
 mutable struct CircularResonator{T} <: AbstractResonator
     radius::T
+    material::AbstractMaterial
     modes::Vector{AbstractMode}
 end
-CircularResonator(r) = CircularResonator{typeof(r)}(r, AbstractMode[])
+CircularResonator(r, mat) = CircularResonator{typeof(r)}(r, mat, AbstractMode[])
 mutable struct RacetrackResonator{T} <: AbstractResonator
     radius::T
     length::T
     orientation::Int
+    material::AbstractMaterial
     modes::Vector{AbstractMode}
 end
-RacetrackResonator(r, l, orient) = RacetrackResonator{typeof(r)}(
-                                                    r, l, orient, AbstractMode[])
+RacetrackResonator(r, l, mat, orient) = RacetrackResonator{typeof(r)}(
+                                                    r, l, mat, orient, AbstractMode[])
 
 abstract type AbstractLaser end
 mutable struct CWLaser{T1, T2} <: AbstractLaser
@@ -101,9 +116,9 @@ mutable struct CWLaser{T1, T2} <: AbstractLaser
     power::T2
 end
 CWLaser(f, δ, P) = CWLaser{typeof(δ), typeof(P)}(f, δ, P)
-mutable struct PulsedLaser{T, F} <: AbstractLaser
+mutable struct PulsedLaser{F} <: AbstractLaser
     frequency::Frequency
-    pulse_shape::F
+    pulse_init::F
 end
-PulsedLaser(f, reprate, P, pulse_init) = PulsedLaser{typeof(P), typeof(pulse_shape)}(
-                                            f, reprate, P, pulse_init)
+PulsedLaser(f, reprate, P, pulse_init) = PulsedLaser{typeof(pulse_init)}(
+                                            f, derive_pulse())
