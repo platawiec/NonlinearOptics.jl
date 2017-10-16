@@ -31,7 +31,7 @@ module NonlinearOptics
     include("diffeqs/integrators.jl")
     include("diffeqs/solve.jl")
     include("diffeqs/premade_problems.jl")
-    include("interface/build_problems.jl")
+    include("interface/solve.jl")
     include("materials/materials.jl")
     include("plot_recipes.jl")
     include("example_models.jl")

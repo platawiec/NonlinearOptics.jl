@@ -1,4 +1,7 @@
-solve(model::Model, exp::DynamicLL)
+function solve(model::Model, exp::DynamicLL)
+    prob = build_problem(model.laser, model.structure)
+
+    solve(prob, alg=NLSE; kwargs...)
 end
 
 """
@@ -25,4 +28,8 @@ function build_problem(laser::CWLaser, res::AbstractResonator; dispersion_order=
     Parameters from Fig. 7a
     """
     prob_LL = NLSEProblem(N_LL, D_LL, u0_LL, τspan, tmesh)
+end
+
+function build_problem(laser::PulsedLaser, wg::Waveguide; dispersion_order=2)
+    prob_NLSE = NLSEProblem()
 end
