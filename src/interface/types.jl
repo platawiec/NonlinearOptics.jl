@@ -116,12 +116,12 @@ mutable struct CWLaser{T1, T2} <: AbstractLaser
     power::T2
 end
 CWLaser(f, δ, P) = CWLaser{typeof(δ), typeof(P)}(f, δ, P)
-mutable struct PulsedLaser{F} <: AbstractLaser
+mutable struct PulsedLaser <: AbstractLaser
     frequency::Frequency
-    pulse_init::F
+    pulse_init
 end
-PulsedLaser(f, reprate, P, pulse_init) = PulsedLaser{typeof(pulse_init)}(
-                                            f, derive_pulse())
+PulsedLaser(f, avgP, reprate, pulsetime, kwargs...) = PulsedLaser(
+                                            f, derive_pulse(avgP, reprate, pulsetime, kwargs...))
 
 mutable struct Model
     laser::AbstractLaser

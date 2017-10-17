@@ -8,10 +8,10 @@ loss = OpticalAttr(1e-3, "Loss (1/m)")
 mode = Mode(neff, Aeff, loss, corefrac)
 
 # 10 mm long waveguide in 100 orientation
-res_simple = CircularResonator(500e-6, SiO2)
-add_mode!(res_simple, mode)
-source_simple = CWLaser(Wavelength(1500e-9), 0.01, 1.0)
-model_simple = Model(source_simple, res_simple)
+wg_simple = Waveguide(10e-3, 100, SiO2)
+add_mode!(wg_simple, mode)
+source_simple = PulsedLaser(Wavelength(1500e-9), 0.01, 1.0, 20e-15)
+model_NLSE = Model(source_simple, wg_simple)
 # Laser answers: δ₀ can change during experiment, ω₀, and Ein? All can be
 # parameters of cw laser. Solver ?s: How many dispersive orders
 # should we use (keyword, default=3)? Initial conditions for NLSE? How do we

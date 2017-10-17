@@ -1,7 +1,7 @@
-function solve(model::Model, exp::DynamicLL)
-    prob = build_problem(model.laser, model.structure)
+function solve(model::Model, exp::Union{DynamicLL, DynamicNLSE}; kwargs...)
+    prob = build_problem(model.laser, model.structure, kwargs...)
 
-    solve(prob, alg=NLSE; kwargs...)
+    solve(prob, SymmetrizedSplitStep(); kwargs...)
 end
 
 """
@@ -35,33 +35,33 @@ function build_problem(laser::PulsedLaser, wg::Waveguide;
                        dispersion_order=2, additional_terms=[])
     # TODO: support mode coupling
     # TODO: currently only supports one mode
-    wg = wg.modes[1]
+    mode = wg.modes[1]
 
-    α = mode.linearloss
-    γnl = get_nonlinearcoeff(res, mode, laser.frequency)
+    α = mode.linearloss(laser)
+    γnl = get_nonlinearcoeff(wg, mode, laser.frequency)
     L = wg.length
 
     beta = get_beta(mode, laser.frequency, dispersion_order)
     beta_coeff = beta ./ [factorial(n) for n=0:(length(beta)-1)]
     tmesh = linspace(-0.5, 0.5, 2^10)
+    dt = tmesh[2] - tmesh[1]
 
-    u0 = derive_pulse(laser)
-    self_steepening(z, u) = 0.0
-    raman_response(z, u) = 0.0
+    u0 = laser.pulse_init
+    self_steepening = ""
+    raman_response = ""
+    N_base = :()
     if :self_steepening in additional_terms
         ω0 = getω(laser.frequency)
-        self_steepening(z, u) = - γnl/ω0 * diff_cyclic(abs2(u)) / dt * u
+        self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt * u)
     end
     if :raman_response in additional_terms
-        raman_response(z, u) - 1im*γnl*raman_response(wg.material)
+        raman_response = :(1im*γnl*material_raman_response(wg.material))
     end
 
-    function N(z, u)
-        (-α/2 + 1im * γnl * abs2(u)) * u + self_steepening(z, u) + raman_response(z, u)
-    end
-    function D(ω, u)
-        1im * Poly(beta_coeff, :ω)
-    end
+    #TODO: Macro for adding terms to function
+    N(z, u) = (-α/2 + 1im * γnl * abs2(u)) * u
+    D(ω, u) = 1im * Poly(beta_coeff, :ω)(ω)
+
     prob = NLSEProblem(N, D, u0, zspan, tmesh)
 end
 
