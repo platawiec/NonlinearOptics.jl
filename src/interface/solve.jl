@@ -32,7 +32,8 @@ function build_problem(laser::CWLaser, res::AbstractResonator;
 end
 
 function build_problem(laser::PulsedLaser, wg::Waveguide;
-                       dispersion_order=2, additional_terms=[])
+                       dispersion_order=2, additional_terms=[],
+                       pulse_window=1e3, tpoints=2^10)
     # TODO: support mode coupling
     # TODO: currently only supports one mode
     mode = wg.modes[1]
@@ -43,13 +44,11 @@ function build_problem(laser::PulsedLaser, wg::Waveguide;
 
     beta = get_beta(mode, laser.frequency, dispersion_order)
     beta_coeff = beta ./ [factorial(n) for n=0:(length(beta)-1)]
-    tmesh = linspace(-0.5, 0.5, 2^10)
+    tmesh = linspace(-pulse_window/2, pulse_window/2, tpoints)
     dt = tmesh[2] - tmesh[1]
+    zspan = (0.0, L)
 
     u0 = laser.pulse_init
-    self_steepening = ""
-    raman_response = ""
-    N_base = :()
     if :self_steepening in additional_terms
         ω0 = getω(laser.frequency)
         self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt * u)

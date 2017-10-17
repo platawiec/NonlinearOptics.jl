@@ -49,5 +49,7 @@ module NonlinearOptics
            get_property, get_label
     export add_mode!
     export model_NLSE
+    export DynamicNLSE, DynamicLL, DynamicIkeda,
+           SteadyStateNLSE, SteadyStateLL, SteadyStateIkeda
 
 end # module
