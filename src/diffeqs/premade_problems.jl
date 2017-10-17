@@ -51,7 +51,7 @@ u0_LL = t -> (sqrt(15)+0im)*exp(-t^2/τpulse^2)
 τspan = (0.0, 0.01)
 tmesh = linspace(-0.5, 0.5, 2^10)
 """Lugatio-Lefever evolution of cavity mean-field. From
-"Frequencu Comb Generation beyond the Lugatio-Lefever equation: multi-stability
+"Frequency Comb Generation beyond the Lugatio-Lefever equation: multi-stability
 and super cavity solitons" T. Hansson, S. Wabnitz, Arxiv 1503.03274
 Parameters from Fig. 7a
 """

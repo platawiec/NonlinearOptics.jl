@@ -67,20 +67,24 @@ mutable struct Mode <: AbstractMode
     effectivearea::OpticalAttr
     linearloss::OpticalAttr
     corefraction::OpticalAttr
+    coupling::OpticalAttr
 end
 Mode(n_eff, area_eff) = Mode(n_eff, area_eff,
                              OpticalAttr(0.0, "Linear Loss"),
-                             OpticalAttr(1.0, "Core Fraction"))
+                             OpticalAttr(1.0, "Core Fraction"),
+                             OpticalAttr(1.0, "Coupling"))
 
 struct ToyMode <: AbstractMode
     beta::Vector{OpticalAttr}
     effectivearea::OpticalAttr
     linearloss::OpticalAttr
     corefraction::OpticalAttr
+    coupling::OpticalAttr
 end
 ToyMode(beta, area_eff) = ToyMode(beta, area_eff,
                                   OpticalAttr(0.0, "Linear Loss (1/m)"),
-                                  OpticalAttr(1.0, "Core Fraction"))
+                                  OpticalAttr(1.0, "Core Fraction"),
+                                  OpticalAttr(1.0, "Coupling"))
 
 abstract type AbstractStructure end
 

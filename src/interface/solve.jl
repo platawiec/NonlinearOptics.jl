@@ -9,7 +9,8 @@ end
 Sets up a Lugatio-Lefever problem
 """
 function build_problem(laser::CWLaser, res::AbstractResonator;
-                       dispersion_order=2, additional_terms=[])
+                       dispersion_order=2, additional_terms=[],
+                       time_window=0.01, tpoints=2^10)
     # TODO: support mode coupling
     # TODO: currently only supports one mode
     mode = res.modes[1]
@@ -20,35 +21,48 @@ function build_problem(laser::CWLaser, res::AbstractResonator;
     L = circumference(res)
     Ein = sqrt(laser.power)
     detuning = laser.detuning
+    const sqrtcoupling = sqrt(mode.coupling)
     beta = get_beta(mode, laser.frequency, dispersion_order)
+    beta_coeff = beta ./ [factorial(n) for n=0:(length(beta)-1)]
 
-    tmesh = linspace(-0.5, 0.5, 2^10)
-    """Lugatio-Lefever evolution of cavity mean-field. From
-    "Frequencu Comb Generation beyond the Lugatio-Lefever equation: multi-stability
-    and super cavity solitons" T. Hansson, S. Wabnitz, Arxiv 1503.03274
-    Parameters from Fig. 7a
-    """
-    prob_LL = NLSEProblem(N_LL, D_LL, u0_LL, τspan, tmesh)
+    tmesh = linspace(-FSR/2, FSR/2, tpoints)
+    τspan = (0.0, time_window)
+
+    u0 = zeros(tmesh)
+    if :self_steepening in additional_terms
+        ω0 = getω(laser.frequency)
+        self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt * u)
+    end
+    if :raman_response in additional_terms
+        raman_response = :(1im*γnl*material_raman_response(wg.material))
+    end
+
+    #TODO: Macro for adding terms to function
+    N(z, u) = (1im*γnl*L*FSR*abs2(u) - FSR*(α+1im*detuning))*u + FSR*sqrtcoupling*Ein
+    D(ω, u) = -1im * FSR * L * Poly(beta_coeff, :ω)(ω)
+
+    prob = NLSEProblem(N, D, u0, τspan, tmesh)
 end
 
 function build_problem(laser::PulsedLaser, wg::Waveguide;
                        dispersion_order=2, additional_terms=[],
-                       pulse_window=1e3, tpoints=2^10)
+                       time_window=1e3, tpoints=2^10)
     # TODO: support mode coupling
     # TODO: currently only supports one mode
     mode = wg.modes[1]
 
     α = mode.linearloss(laser)
-    γnl = get_nonlinearcoeff(wg, mode, laser.frequency)
+    γnl = get_nonlinearcoeff(wg, mode, laser.frequency)*1e15
     L = wg.length
 
     beta = get_beta(mode, laser.frequency, dispersion_order)
     beta_coeff = beta ./ [factorial(n) for n=0:(length(beta)-1)]
-    tmesh = linspace(-pulse_window/2, pulse_window/2, tpoints)
+    tmesh = linspace(-time_window/2, time_window/2, tpoints)
     dt = tmesh[2] - tmesh[1]
     zspan = (0.0, L)
+    const coupling = mode.coupling(laser)
 
-    u0 = laser.pulse_init
+    u0(t) = coupling * laser.pulse_init(t)
     if :self_steepening in additional_terms
         ω0 = getω(laser.frequency)
         self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt * u)

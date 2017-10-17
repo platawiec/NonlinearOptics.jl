@@ -1,8 +1,6 @@
 # NonlinearOptics
 
 ## Roadmap
- * Unit tests
- * Toy model implementation
  * Callbacks
  * Ikeda Map
  * Steady-state solvers
