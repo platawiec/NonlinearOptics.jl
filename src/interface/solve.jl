@@ -16,19 +16,19 @@ function build_problem(laser::CWLaser, res::AbstractResonator;
     mode = res.modes[1]
 
     FSR = get_FSR(res, mode, laser.frequency)
-    α = mode.linearloss
+    α = mode.linearloss(laser.frequency)
     γnl = get_nonlinearcoeff(res, mode, laser.frequency)
     L = circumference(res)
     Ein = sqrt(laser.power)
     detuning = laser.detuning
-    const sqrtcoupling = sqrt(mode.coupling)
+    const sqrtcoupling = sqrt(mode.coupling(laser.frequency))
     beta = get_beta(mode, laser.frequency, dispersion_order)
     beta_coeff = beta ./ [factorial(n) for n=0:(length(beta)-1)]
 
     tmesh = linspace(-FSR/2, FSR/2, tpoints)
     τspan = (0.0, time_window)
 
-    u0 = zeros(tmesh)
+    u0(t) = (1+0im)*rand()
     if :self_steepening in additional_terms
         ω0 = getω(laser.frequency)
         self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt * u)

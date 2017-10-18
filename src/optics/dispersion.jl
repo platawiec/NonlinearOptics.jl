@@ -41,6 +41,6 @@ returns the free spectral range (FSR) of the resonator's modes
 """
 function get_FSR(resonator::AbstractResonator, mode::Mode, source::AbstractSource)
     groupindex = get_groupindex(mode, source)
-    FSR = c/(2*groupindex*circumference(resonator))
+    FSR = abs(c/(2*groupindex*circumference(resonator)))
     FSR
 end

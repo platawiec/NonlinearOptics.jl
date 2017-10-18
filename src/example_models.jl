@@ -20,3 +20,8 @@ model_NLSE = Model(source_simple, wg_simple)
 # should we use (keyword, default=3)? Initial conditions for NLSE? How do we
 # determine initial conditions otherwise?
 #solve(model_simple, DynamicLL()) (DynamicLL, DynamicIkeda, SSLL, SSIkeda, NLSE)
+
+res_simple = CircularResonator(30e-6, SiO2)
+add_mode!(res_simple, mode)
+source_CW = CWLaser(Frequency(200), 0.5, 10.0)
+model_LL = Model(source_CW, res_simple)
