@@ -30,6 +30,7 @@ function init{algType<:AbstractNLSEAlgorithm}(
     progress_steps = 1000,
     progress_name = "NLSE",
     progress_message = "NLSE",
+    callback=[],
     kwargs...
     )
 
@@ -57,8 +58,8 @@ function init{algType<:AbstractNLSEAlgorithm}(
 
     sol = build_solution(prob, alg, ts, zs, timeseries)
 
-    integrator = NLSEIntegrator{algType, uType, tType, typeof(tstops), typeof(ktilde), CacheType, typeof(prob.N), typeof(prob.D)}(
-        prob.N, prob.D, sol, u, uprev, t, dt, tstops, ktilde, alg, cache)
+    integrator = NLSEIntegrator{algType, uType, tType, typeof(tstops), typeof(ktilde), CacheType, typeof(prob.N), typeof(prob.D), typeof(callback)}(
+        prob.N, prob.D, sol, u, uprev, t, dt, tstops, ktilde, alg, cache, callback)
 
     initialize!(integrator, integrator.cache)
 
@@ -71,6 +72,9 @@ function solve!(integrator::NLSEIntegrator)
         perform_step!(integrator, integrator.cache)
         push!(integrator.sol.u, copy(integrator.u))
         push!(integrator.sol.t, integrator.t)
+        if integrator.callback != []
+            handle_callbacks!(integrator)
+        end
     end
 
     integrator.sol.retcode = :Success

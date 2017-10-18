@@ -1,4 +1,4 @@
-mutable struct NLSEIntegrator{algType<:AbstractNLSEAlgorithm, uType, tType, tstopsType, ktildeType, CacheType<:DECache, F1, F2}
+mutable struct NLSEIntegrator{algType<:AbstractNLSEAlgorithm, uType, tType, tstopsType, ktildeType, CacheType<:DECache, F1, F2, C}
     N::F1
     D::F2
     sol::NLSESolution
@@ -10,6 +10,7 @@ mutable struct NLSEIntegrator{algType<:AbstractNLSEAlgorithm, uType, tType, tsto
     ktilde::ktildeType
     alg::algType
     cache::CacheType
+    callback::C
 end
 
 # placeholder for future cache-ing
@@ -46,6 +47,12 @@ function loopfooter!(integrator)
 end
 
 function handle_tstop!(integrator)
+end
+
+function handle_callbacks!(integrator)
+    if isapprox(integrator.callback.condition(integrator.t, integrator.u, integrator), 0, atol=1e-12)
+        integrator.callback.affect!(integrator)
+    end
 end
 
 function postamble!(integrator)
