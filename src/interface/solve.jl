@@ -41,7 +41,7 @@ function build_problem(laser::CWLaser, res::AbstractResonator, ::DynamicLL;
 
     # random definition
     # u0(t) = ((1+0im)*rand()+(0+1im)*rand())/sqrtdt
-    u0 = derive_pulse(1.0, 1.0, 1/FSR*0.001)
+    u0 = derive_pulse(Ein, 1.0, 1/FSR*0.1)
     if :self_steepening in additional_terms
         ω0 = getω(laser.frequency)
         self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt_mesh * u)
@@ -113,7 +113,7 @@ function build_problem(laser::CWLaser, res::AbstractResonator, ::DynamicIkeda;
     const transmission = sqrt(1-coupling^2)
     const phase_shift = 2pi*L-laser.detuning
 
-    u0 = derive_pulse(1.0, 1.0, 1/FSR*0.001)
+    u0 = derive_pulse(Ein, 1.0, 1/FSR*0.1)
     if :self_steepening in additional_terms
         ω0 = getω(laser.frequency)
         self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt_mesh * u)

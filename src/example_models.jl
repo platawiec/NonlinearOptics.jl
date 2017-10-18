@@ -5,7 +5,7 @@ neff = OpticalAttr(freq, neff_data, "n_eff")
 corefrac = OpticalAttr(1.0, "Core Fraction")
 Aeff = OpticalAttr(1e-12, "Aeff (m²)")
 loss = OpticalAttr(1e-3, "Loss (1/m)")
-coupling = OpticalAttr(1.0, "Coupling")
+coupling = OpticalAttr(0.6, "Coupling")
 
 mode = Mode(neff, Aeff, loss, corefrac, coupling)
 
@@ -23,5 +23,5 @@ model_NLSE = Model(source_simple, wg_simple)
 
 res_simple = CircularResonator(30e-6, SiO2)
 add_mode!(res_simple, mode)
-source_CW = CWLaser(Frequency(200), 0.5, 10.0)
+source_CW = CWLaser(Frequency(200), 0.5, 100.0)
 model_LL = Model(source_CW, res_simple)
