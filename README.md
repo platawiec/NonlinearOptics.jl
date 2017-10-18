@@ -1,8 +1,6 @@
 # NonlinearOptics
 
 ## Roadmap
- * Callbacks
- * Ikeda Map
  * Steady-state solvers
  * Example Problems
  * Mode-coupling
