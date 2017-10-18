@@ -1,5 +1,5 @@
 function solve(model::Model, exp::Union{DynamicLL, DynamicNLSE}; kwargs...)
-    prob = build_problem(model.laser, model.structure, kwargs...)
+    prob = build_problem(model.laser, model.structure; kwargs...)
 
     solve(prob, SymmetrizedSplitStep(); kwargs...)
 end
@@ -52,7 +52,7 @@ function build_problem(laser::PulsedLaser, wg::Waveguide;
     mode = wg.modes[1]
 
     α = mode.linearloss(laser)
-    γnl = get_nonlinearcoeff(wg, mode, laser.frequency)*1e15
+    γnl = get_nonlinearcoeff(wg, mode, laser.frequency)
     L = wg.length
 
     beta = get_beta(mode, laser.frequency, dispersion_order)

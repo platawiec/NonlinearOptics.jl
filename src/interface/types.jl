@@ -3,11 +3,9 @@ abstract type AbstractSource end
 struct Frequency{T} <: AbstractSource
     f::T
 end
-Frequency(f) = Frequency{typeof(f)}(f)
 struct Wavelength{T} <: AbstractSource
     λ::T
 end
-Wavelength(λ) = Wavelength{typeof(λ)}(λ)
 
 abstract type AbstractMaterial end
 
@@ -16,14 +14,12 @@ struct RamanCoefficient{T} <: AbstractRamanResponse
     raman::T
 end
 struct RamanTensor <: AbstractRamanResponse end
-RamanCoefficient(raman) = RamanCoefficient{typeof(raman)}(raman)
 
 abstract type AbstractDielectric end
 struct DielectricCoefficient{T} <: AbstractDielectric
     ϵ::T
 end
 struct DielectricTensor <: AbstractDielectric end
-DielectricCoefficient(ϵ) = DielectricCoefficient{typeof(ϵ)}(ϵ)
 
 struct Glass{T} <: AbstractMaterial
     nonlinearindex::T
