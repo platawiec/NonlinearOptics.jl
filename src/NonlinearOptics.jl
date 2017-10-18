@@ -15,7 +15,7 @@ module NonlinearOptics
 
     abstract type AbstractNLSEAlgorithm <: DEAlgorithm end
 
-    const c = 2.99792458e8/1e15 # preferred units are THz
+    const c = 2.99792458e8/1e12 # preferred units are THz
 
     include("interface/fit_util.jl")
     include("interface/types.jl")

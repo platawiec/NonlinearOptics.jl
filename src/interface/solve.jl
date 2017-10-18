@@ -10,7 +10,7 @@ Sets up a Lugatio-Lefever problem
 """
 function build_problem(laser::CWLaser, res::AbstractResonator;
                        dispersion_order=2, additional_terms=[],
-                       time_window=0.01, tpoints=2^10)
+                       time_window=0.01, tpoints=2^10, kwargs...)
     # TODO: support mode coupling
     # TODO: currently only supports one mode
     mode = res.modes[1]
@@ -26,12 +26,16 @@ function build_problem(laser::CWLaser, res::AbstractResonator;
     beta_coeff = beta ./ [factorial(n) for n=0:(length(beta)-1)]
 
     tmesh = linspace(-FSR/2, FSR/2, tpoints)
+    dt_mesh = tmesh[2]-tmesh[1]
+    const sqrtdt = sqrt(dt_mesh)
     τspan = (0.0, time_window)
 
-    u0(t) = (1+0im)*rand()
+    # random definition
+    # u0(t) = ((1+0im)*rand()+(0+1im)*rand())/sqrtdt
+    u0 = derive_pulse(1.0, 1.0, 1/FSR*0.001)
     if :self_steepening in additional_terms
         ω0 = getω(laser.frequency)
-        self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt * u)
+        self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt_mesh * u)
     end
     if :raman_response in additional_terms
         raman_response = :(1im*γnl*material_raman_response(wg.material))
@@ -46,7 +50,7 @@ end
 
 function build_problem(laser::PulsedLaser, wg::Waveguide;
                        dispersion_order=2, additional_terms=[],
-                       time_window=1e3, tpoints=2^10)
+                       time_window=2.0, tpoints=2^10, kwargs...)
     # TODO: support mode coupling
     # TODO: currently only supports one mode
     mode = wg.modes[1]
@@ -58,14 +62,14 @@ function build_problem(laser::PulsedLaser, wg::Waveguide;
     beta = get_beta(mode, laser.frequency, dispersion_order)
     beta_coeff = beta ./ [factorial(n) for n=0:(length(beta)-1)]
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
-    dt = tmesh[2] - tmesh[1]
+    dt_mesh = tmesh[2] - tmesh[1]
     zspan = (0.0, L)
     const coupling = mode.coupling(laser)
 
     u0(t) = coupling * laser.pulse_init(t)
     if :self_steepening in additional_terms
         ω0 = getω(laser.frequency)
-        self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt * u)
+        self_steepening = :(- γnl/ω0 * diff_cyclic(abs2(u)) / dt_mesh * u)
     end
     if :raman_response in additional_terms
         raman_response = :(1im*γnl*material_raman_response(wg.material))
