@@ -123,10 +123,29 @@ end
 PulsedLaser(f, avgP, reprate, pulsetime, kwargs...) = PulsedLaser(
                                             f, derive_pulse(avgP, reprate, pulsetime, kwargs...))
 
-mutable struct Model
+abstract type AbstractModel end
+mutable struct Model <: AbstractModel
     laser::AbstractLaser
     structure::AbstractStructure
 end
+mutable struct ToyModel{T} <: AbstractModel
+    FSR::T
+    nonlinearcoeff::T
+    linearloss::T
+    coupling::T
+    power_in::T
+    length::T
+    detuning::T
+    betacoeff::Vector{T}
+    pulsetime::T
+end
+ToyModel(;FSR=0.1, nonlinearcoeff=1.0, linearloss=0.009, coupling=0.009,
+          power_in = 0.755, length=628e-6, detuning=0.0534, pulsetime=0.1,
+          betacoeff=[0, 0, -0.05]) = ToyModel(FSR, nonlinearcoeff, linearloss,
+                                              coupling, power_in, length,
+                                              detuning, betacoeff, pulsetime)
+
+
 
 abstract type AbstractExperiment end
 abstract type AbstractDynamicExperiment end
