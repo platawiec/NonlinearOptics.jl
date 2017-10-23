@@ -144,16 +144,3 @@ ToyModel(;FSR=0.1, nonlinearcoeff=1.0, linearloss=0.009, coupling=0.009,
           betacoeff=[0, 0, -0.05]) = ToyModel(FSR, nonlinearcoeff, linearloss,
                                               coupling, power_in, length,
                                               detuning, betacoeff, pulsetime)
-
-
-
-abstract type AbstractExperiment end
-abstract type AbstractDynamicExperiment end
-abstract type AbstractSteadyStateExperiment end
-struct DynamicLL <: AbstractDynamicExperiment end
-struct DynamicNLSE <: AbstractDynamicExperiment end
-struct DynamicIkeda <: AbstractDynamicExperiment end
-
-struct SteadyStateLL <: AbstractSteadyStateExperiment end
-struct SteadyStateNLSE <: AbstractSteadyStateExperiment end
-struct SteadyStateIkeda <: AbstractSteadyStateExperiment end

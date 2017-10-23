@@ -8,7 +8,8 @@ module NonlinearOptics
 
     import DiffEqBase: solve, solve!, init, step!,
                        build_solution, initialize!, isinplace
-
+    import Base: getindex, setindex!
+    
     abstract type AbstractNLSEProblem{uType, tType, zType} <: DEProblem end
 
     abstract type AbstractNLSESolution{T,N} <: AbstractTimeseriesSolution{T,N} end
@@ -19,17 +20,13 @@ module NonlinearOptics
 
     include("interface/fit_util.jl")
     include("interface/types.jl")
+    include("interface/solvertypes.jl")
     include("interface/conversions.jl")
     include("interface/interface.jl")
     include("optics/optics_utils.jl")
     include("optics/dispersion.jl")
     include("optics/pulses.jl")
-    include("diffeqs/problems.jl")
-    include("diffeqs/algorithms.jl")
-    include("diffeqs/solutions.jl")
-    include("diffeqs/integrators.jl")
-    include("diffeqs/solve.jl")
-    include("diffeqs/premade_problems.jl")
+    include("interface/build.jl")
     include("interface/solve.jl")
     include("materials/materials.jl")
     include("plot_recipes.jl")

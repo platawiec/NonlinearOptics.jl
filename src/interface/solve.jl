@@ -248,34 +248,7 @@ function build_problem(laser::CWLaser, res::AbstractResonator, ::DynamicLL;
     prob = ODEProblem(f, u0, τspan)
 end
 
-function solve(model::ToyModel, ::DynamicNLSE; tpoints=2^10, time_window=100, kwargs...)
-    α = model.linearloss
-    γnl = model.nonlinearcoeff
-    L = model.length
-    Ein = sqrt(model.power_in)
-    detuning = model.detuning
-    sqrtcoupling = sqrt(model.coupling)
-    beta = model.betacoeff
-    beta_coeff = beta .* [(1im)^n/factorial(n) for n=0:(length(beta)-1)]
-
-    tmesh = linspace(-model.pulsetime*10, model.pulsetime*10, tpoints)
-    dt_mesh = tmesh[2]-tmesh[1]
-    const sqrtdt = sqrt(dt_mesh)
-    zspan = (0.0, model.length)
-
-    dω = 2pi/maximum(tmesh)
-    ω_max = dω/2.0*(length(tmesh)-1)
-    ω = collect(-ω_max:dω:ω_max)
-    ω = fftshift(ω)
-
-    u0 = derive_pulse(Ein, 1.0, model.pulsetime/(2*log(1+sqrt(2))))(tmesh)
-    planned_fft = plan_fft(u0)
-    planned_ifft = plan_ifft(u0)
-    #TODO: Macro for adding terms to function
-    function f(z, u)
-        uT = planned_fft * (u .* exp(-1im * Poly(beta_coeff, :ω).(ω) .* z))
-        1im*γnl.*planned_ifft * (uT.*abs2.(uT)) .* exp(1im * Poly(beta_coeff, :ω).(ω)*z)
-    end
-
-    prob = ODEProblem(f, planned_ifft * u0, zspan)
+function solve(prob::DynamicNLSEProblem, alg::AbstractODEAlgorithm; kwargs...)
+    sol = solve(prob.prob, alg; kwargs...)
+    DynamicNLSESolution(sol, prob)
 end
