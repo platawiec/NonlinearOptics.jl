@@ -3,33 +3,26 @@ function build_problem(model::ToyModel, ::DynamicNLSE;
     α = model.linearloss
     γnl = model.nonlinearcoeff
     L = model.length
-    Ein = sqrt(model.power_in)
-    detuning = model.detuning
-    sqrtcoupling = sqrt(model.coupling)
     beta = model.betacoeff
     beta_coeff = beta .* [(1im)^n/factorial(n) for n=0:(length(beta)-1)]
-
-    tmesh = linspace(-model.pulsetime*10, model.pulsetime*10, tpoints)
-    dt_mesh = tmesh[2]-tmesh[1]
-    const sqrtdt = sqrt(dt_mesh)
+    tmesh = linspace(-time_window/2, time_window/2, tpoints)
     zspan = (0.0, model.length)
 
-    dω = 2pi/maximum(tmesh)
-    ω_max = dω/2.0*(length(tmesh)-1)
-    ω = collect(-ω_max:dω:ω_max)
+    dt_mesh = tmesh[2]-tmesh[1]
+    ω = collect(2pi*(-length(tmesh)/2:length(tmesh)/2-1)/(length(tmesh)*dt_mesh))
     ω = fftshift(ω)
     ω0 = 0.0#toy model ω0 is 0
 
-    u0 = derive_pulse(Ein, 1.0, model.pulsetime/(2*log(1+sqrt(2))))(tmesh)
-    planned_fft = plan_fft(u0)
-    planned_ifft = plan_ifft(u0)
-    D = 1im * Poly(beta_coeff, :ω).(ω) - α/2
+    u0 = derive_pulse(model.power_in, model.pulsetime).(tmesh)
+    planned_fft = plan_fft(u0, flags=FFTW.MEASURE)
+    planned_ifft = plan_ifft(u0, flags=FFTW.MEASURE)
+    D = -1im * Poly(beta_coeff, :ω).(ω) - α/2
     #TODO: Macro for adding terms to function
     function f(z, u)
         uT = planned_fft * (u .* exp(D * z))
-        1im*γnl.*planned_ifft * (uT.*abs2.(uT)) .* exp(-D .* z)
+        1im*γnl.*planned_ifft * (uT.*abs2.(uT)) .* exp(-D * z)
     end
 
-    prob = ODEProblem(f, planned_ifft * u0, zspan)
+    prob = ODEProblem(f, planned_ifft * u0, zspan; kwargs...)
     prob_NLSE = DynamicNLSEProblem(prob, fftshift(ω), ω0, tmesh, planned_fft, planned_ifft, D)
 end

@@ -248,7 +248,7 @@ function build_problem(laser::CWLaser, res::AbstractResonator, ::DynamicLL;
     prob = ODEProblem(f, u0, τspan)
 end
 
-function solve(prob::DynamicNLSEProblem, alg::AbstractODEAlgorithm; kwargs...)
+function solve(prob::DynamicNLSEProblem, alg::AbstractODEAlgorithm=DP5(); kwargs...)
     sol = solve(prob.prob, alg; kwargs...)
     DynamicNLSESolution(sol, prob)
 end

@@ -29,4 +29,5 @@ model_LL = Model(source_CW, res_simple)
 # Second-order Soliton model from J. Lightwave Tech. Vol. 25 No. 12 Dec. 2007
 # Johan Hult
 model_ToyNLSE = ToyModel(;betacoeff=[0.0, 0.0, -0.01], nonlinearcoeff=0.01,
-                         power_in=1.24e3, pulsetime=0.1, length=2.0)
+                         linearloss=0.0,
+                         power_in=1.24e3, pulsetime=0.1, length=0.506)

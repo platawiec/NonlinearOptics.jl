@@ -7,3 +7,9 @@ function derive_pulse(average_power, rep_rate, pulse_time, pulse_type::Symbol=:g
     end
     u0
 end
+
+function derive_pulse(peak_power, pulse_FWHM)
+    sqrtpower = sqrt(peak_power)
+    pulse_0 = pulse_FWHM/(2*log(1+sqrt(2)))
+    u0(x) = (1+0im)*sqrtpower*sech(x/pulse_0)
+end
