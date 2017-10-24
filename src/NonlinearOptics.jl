@@ -6,6 +6,7 @@ module NonlinearOptics
 
     using RecipesBase
 
+    import DiffEqCallbacks: PeriodicCallback
     import DiffEqBase: solve, solve!, init, step!,
                        build_solution, initialize!, isinplace
     import Base: getindex, setindex!

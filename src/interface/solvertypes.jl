@@ -30,6 +30,16 @@ mutable struct DynamicLLProblem{fType, f0Type, fftType, ifftType, meshType, opTy
     planned_ifft::ifftType
     Doperator::opType
 end
+mutable struct DynamicIkedaProblem{fType, f0Type, fftType, ifftType, meshType, opType, cbType} <: AbstractNLOProblem
+    prob::ODEProblem
+    ω::fType
+    ω0::f0Type
+    tmesh::meshType
+    planned_fft::fftType
+    planned_ifft::ifftType
+    Doperator::opType
+    ikeda_callback::cbType
+end
 
 abstract type AbstractNLOSolution end
 mutable struct DynamicNLSESolution <: AbstractNLOSolution
@@ -39,6 +49,10 @@ end
 mutable struct DynamicLLSolution <: AbstractNLOSolution
     sol::ODESolution
     prob::DynamicLLProblem
+end
+mutable struct DynamicIkedaSolution <: AbstractNLOSolution
+    sol::ODESolution
+    prob::DynamicIkedaProblem
 end
 
 
@@ -54,6 +68,13 @@ function (sol::DynamicLLSolution)(z)
     sol.prob.planned_fft * (sol.sol(z).*exp(sol.prob.Doperator * z))
 end
 function FT(sol::DynamicLLSolution, z)
+    dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
+    fftshift(sol.sol(z).*exp(sol.prob.Doperator * z)) / dt
+end
+function (sol::DynamicIkedaSolution)(z)
+    sol.prob.planned_fft * (sol.sol(z).*exp(sol.prob.Doperator * z))
+end
+function FT(sol::DynamicIkedaSolution, z)
     dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
     fftshift(sol.sol(z).*exp(sol.prob.Doperator * z)) / dt
 end
