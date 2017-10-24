@@ -16,15 +16,17 @@ function build_problem(model::ToyModel, ::DynamicNLSE;
 
     u0 = derive_pulse(model.power_in, model.pulsetime).(tmesh)
     planned_fft! = plan_fft!(u0, flags=FFTW.MEASURE)
-    planned_ifft = plan_ifft(u0, flags=FFTW.MEASURE)
+    planned_ifft! = plan_ifft!(u0, flags=FFTW.MEASURE)
     D = -1im * Poly(beta_coeff, :ω).(ω) - α/2
     #TODO: Macro for adding terms to function
     function f(z, u, du)
         @. du = (u * exp(D * z))
         planned_fft! * du
-        du[:] = 1im*γnl.*planned_ifft * (du.*abs2.(du)) .* exp(-D * z)
+        @. du = du * abs2(du)
+        planned_ifft! * du
+        @. du = 1im * γnl * du * exp(-D * z)
     end
 
-    prob = ODEProblem(f, planned_ifft * u0, zspan; kwargs...)
-    prob_NLSE = DynamicNLSEProblem(prob, fftshift(ω), ω0, tmesh, planned_fft!, planned_ifft, D)
+    prob = ODEProblem(f, planned_ifft! * u0, zspan; kwargs...)
+    prob_NLSE = DynamicNLSEProblem(prob, fftshift(ω), ω0, tmesh, planned_fft!, planned_ifft!, D)
 end

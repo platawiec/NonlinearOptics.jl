@@ -1,6 +1,5 @@
 using Base.Test
 using NonlinearOptics
-import NonlinearOptics
 
 detected_tests = filter(name->startswith(name, "test_") && endswith(name, ".jl"),
                         readdir(@__DIR__))
