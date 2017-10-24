@@ -9,7 +9,7 @@ module NonlinearOptics
     import DiffEqBase: solve, solve!, init, step!,
                        build_solution, initialize!, isinplace
     import Base: getindex, setindex!
-    
+
     abstract type AbstractNLSEProblem{uType, tType, zType} <: DEProblem end
 
     abstract type AbstractNLSESolution{T,N} <: AbstractTimeseriesSolution{T,N} end
@@ -36,6 +36,7 @@ module NonlinearOptics
     export prob_bright_soliton, prob_linear_pulse, prob_dispersive_pulse,
             prob_LL
     export solve
+    export build_problem
 
     export Wavelength, Frequency, c
     export OpticalAttr
@@ -44,8 +45,9 @@ module NonlinearOptics
     export frequency, wavelength, getω, get_beta, get_FSR, get_groupindex,
            get_property, get_label
     export add_mode!
-    export model_NLSE
+    export ToyModel
     export DynamicNLSE, DynamicLL, DynamicIkeda,
            SteadyStateNLSE, SteadyStateLL, SteadyStateIkeda
+    export FT
 
 end # module
