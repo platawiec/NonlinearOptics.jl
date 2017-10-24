@@ -252,3 +252,8 @@ function solve(prob::DynamicNLSEProblem, alg::AbstractODEAlgorithm=DP5(); kwargs
     sol = solve(prob.prob, alg; kwargs...)
     DynamicNLSESolution(sol, prob)
 end
+
+function solve(prob::DynamicLLProblem, alg::AbstractODEAlgorithm=DP5(); kwargs...)
+    sol = solve(prob.prob, alg; kwargs...)
+    DynamicLLSolution(sol, prob)
+end

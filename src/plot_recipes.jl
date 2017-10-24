@@ -1,4 +1,4 @@
-@recipe function f(sol::DynamicNLSESolution;plot_analytic=false, evolution=false)
+@recipe function f(sol::AbstractNLOSolution;plot_analytic=false, evolution=false)
     ω = sol.prob.ω
     zend = sol.prob.prob.tspan[2]
     spectrum = abs2.(FT(sol, zend))

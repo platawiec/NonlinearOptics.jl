@@ -12,7 +12,16 @@ struct SteadyStateIkeda <: AbstractSteadyStateExperiment end
 
 # Abstraction layers over DiffEq solution/problem types
 abstract type AbstractNLOProblem end
-mutable struct DynamicNLSEProblem{fType, f0Type, fftType, ifftType, meshType, opType}
+mutable struct DynamicNLSEProblem{fType, f0Type, fftType, ifftType, meshType, opType} <: AbstractNLOProblem
+    prob::ODEProblem
+    ω::fType
+    ω0::f0Type
+    tmesh::meshType
+    planned_fft::fftType
+    planned_ifft::ifftType
+    Doperator::opType
+end
+mutable struct DynamicLLProblem{fType, f0Type, fftType, ifftType, meshType, opType} <: AbstractNLOProblem
     prob::ODEProblem
     ω::fType
     ω0::f0Type
@@ -23,15 +32,28 @@ mutable struct DynamicNLSEProblem{fType, f0Type, fftType, ifftType, meshType, op
 end
 
 abstract type AbstractNLOSolution end
-mutable struct DynamicNLSESolution
+mutable struct DynamicNLSESolution <: AbstractNLOSolution
     sol::ODESolution
     prob::DynamicNLSEProblem
 end
+mutable struct DynamicLLSolution <: AbstractNLOSolution
+    sol::ODESolution
+    prob::DynamicLLProblem
+end
+
+
 # calling solution returns time-domain solution
 function (sol::DynamicNLSESolution)(z)
     sol.prob.planned_fft * (sol.sol(z).*exp(sol.prob.Doperator * z))
 end
 function FT(sol::DynamicNLSESolution, z)
+    dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
+    fftshift(sol.sol(z).*exp(sol.prob.Doperator * z)) / dt
+end
+function (sol::DynamicLLSolution)(z)
+    sol.prob.planned_fft * (sol.sol(z).*exp(sol.prob.Doperator * z))
+end
+function FT(sol::DynamicLLSolution, z)
     dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
     fftshift(sol.sol(z).*exp(sol.prob.Doperator * z)) / dt
 end
