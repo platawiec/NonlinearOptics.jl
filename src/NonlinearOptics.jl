@@ -1,6 +1,6 @@
 module NonlinearOptics
     using Polynomials
-    using OrdinaryDiffEq, DiffEqBase
+    using OrdinaryDiffEq
     using Juno
     using RecursiveArrayTools, MuladdMacro, Parameters
 
