@@ -1,3 +1,5 @@
+# Second-order Soliton model from J. Lightwave Tech. Vol. 25 No. 12 Dec. 2007
+# Johan Hult
 T_FWHM = 0.1
 T_T0 = T_FWHM/(2*log(1+sqrt(2)))
 β₂ = -0.01

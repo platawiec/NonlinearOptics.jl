@@ -10,6 +10,7 @@ function build_problem(model::ToyModel, ::DynamicNLSE;
 
     dt_mesh = tmesh[2]-tmesh[1]
     ω = collect(2pi*(-length(tmesh)/2:length(tmesh)/2-1)/(length(tmesh)*dt_mesh))
+    ω = get_ωmesh(tmesh)
     ω = fftshift(ω)
     ω0 = 0.0#toy model ω0 is 0
 
@@ -18,9 +19,9 @@ function build_problem(model::ToyModel, ::DynamicNLSE;
     planned_ifft = plan_ifft(u0, flags=FFTW.MEASURE)
     D = -1im * Poly(beta_coeff, :ω).(ω) - α/2
     #TODO: Macro for adding terms to function
-    function f(z, u)
-        uT = planned_fft * (u .* exp(D * z))
-        1im*γnl.*planned_ifft * (uT.*abs2.(uT)) .* exp(-D * z)
+    function f(z, u, du)
+        du[:] = planned_fft * (u .* exp(D * z))
+        du[:] = 1im*γnl.*planned_ifft * (du.*abs2.(du)) .* exp(-D * z)
     end
 
     prob = ODEProblem(f, planned_ifft * u0, zspan; kwargs...)
