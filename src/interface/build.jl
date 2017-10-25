@@ -60,9 +60,10 @@ function build_problem(model::ToyModel, ::DynamicLL;
     function f(z, u, du)
         @. du = (u * exp(D * z))
         planned_fft! * du
-        @. du = du * abs2(du) + sqrtcoupling * Ein / L / γnl /1im
+        @. du = du * abs2(du)
         planned_ifft! * du
         @. du = (1im * γnl * L * FSR * du) * exp(-D * z)
+        du[1] = sqrtcoupling * Ein * FSR * exp(-D[1] * z)
     end
 
     prob = ODEProblem(f, planned_ifft! * u0, τspan; kwargs...)
