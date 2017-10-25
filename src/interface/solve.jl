@@ -248,15 +248,11 @@ function build_problem(laser::CWLaser, res::AbstractResonator, ::DynamicLL;
     prob = ODEProblem(f, u0, τspan)
 end
 
-function solve(prob::DynamicNLSEProblem, alg::AbstractODEAlgorithm=DP5(); kwargs...)
+function solve(prob::AbstractNLOProblem, alg::AbstractODEAlgorithm=DP5(); kwargs...)
     sol = solve(prob.prob, alg; kwargs...)
-    DynamicNLSESolution(sol, prob)
-end
-function solve(prob::DynamicLLProblem, alg::AbstractODEAlgorithm=DP5(); kwargs...)
-    sol = solve(prob.prob, alg; kwargs...)
-    DynamicLLSolution(sol, prob)
+    DynamicNLOSolution(sol, prob)
 end
 function solve(prob::DynamicIkedaProblem, alg::AbstractODEAlgorithm=DP5(); kwargs...)
     sol = solve(prob.prob, alg; callback=prob.ikeda_callback, kwargs...)
-    DynamicIkedaSolution(sol, prob)
+    DynamicNLOSolution(sol, prob)
 end

@@ -42,39 +42,16 @@ mutable struct DynamicIkedaProblem{fType, f0Type, fftType, ifftType, meshType, o
 end
 
 abstract type AbstractNLOSolution end
-mutable struct DynamicNLSESolution <: AbstractNLOSolution
+mutable struct DynamicNLOSolution <: AbstractNLOSolution
     sol::ODESolution
-    prob::DynamicNLSEProblem
+    prob::AbstractNLOProblem
 end
-mutable struct DynamicLLSolution <: AbstractNLOSolution
-    sol::ODESolution
-    prob::DynamicLLProblem
-end
-mutable struct DynamicIkedaSolution <: AbstractNLOSolution
-    sol::ODESolution
-    prob::DynamicIkedaProblem
-end
-
 
 # calling solution returns time-domain solution
-function (sol::DynamicNLSESolution)(z)
+function (sol::DynamicNLOSolution)(z)
     sol.prob.planned_fft * (sol.sol(z).*exp(sol.prob.Doperator * z))
 end
-function FT(sol::DynamicNLSESolution, z)
-    dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
-    fftshift(sol.sol(z).*exp(sol.prob.Doperator * z)) / dt
-end
-function (sol::DynamicLLSolution)(z)
-    sol.prob.planned_fft * (sol.sol(z).*exp(sol.prob.Doperator * z))
-end
-function FT(sol::DynamicLLSolution, z)
-    dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
-    fftshift(sol.sol(z).*exp(sol.prob.Doperator * z)) / dt
-end
-function (sol::DynamicIkedaSolution)(z)
-    sol.prob.planned_fft * (sol.sol(z).*exp(sol.prob.Doperator * z))
-end
-function FT(sol::DynamicIkedaSolution, z)
+function FT(sol::DynamicNLOSolution, z)
     dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
     fftshift(sol.sol(z).*exp(sol.prob.Doperator * z)) / dt
 end

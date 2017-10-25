@@ -1,5 +1,5 @@
 # Simple LL comb simulation
-T_FWHM = 0.2
+T_FWHM = 1.0
 T_T0 = T_FWHM/(2*log(1+sqrt(2)))
 β₂ = -0.013
 γnl = 0.000032
@@ -13,10 +13,10 @@ comb_LL = ToyModel(;betacoeff=[0.0, 0.0, β₂],
                     nonlinearcoeff=γnl,
                     linearloss=α,
                     power_in=P_in,
-                    pulsetime=T_FWHM,
+                    pulsetime=0.0,
                     length=L,
                     FSR=FSR,
                     detuning=detuning,
                     coupling=coupling)
-prob_LL = build_problem(comb_LL, DynamicLL(); time_window=100.0, tpoints=2^12)
+prob_LL = build_problem(comb_LL, DynamicLL(); time_window=100, tpoints=2^12)
 sol_LL = solve(prob_LL)
