@@ -20,5 +20,5 @@ comb_ikeda = ToyModel(;betacoeff=[0.0, 0.0, β₂],
 prob_ikeda = build_problem(comb_ikeda, DynamicIkeda();
                            time_window=25.0,
                            tpoints=2^12,
-                           num_roundtrips=500)
+                           num_roundtrips=50)
 sol_ikeda = solve(prob_ikeda)
