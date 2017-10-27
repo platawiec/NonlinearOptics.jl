@@ -1,10 +1,10 @@
 function build_problem(model::ToyModel, ::DynamicNLSE;
                        tpoints=2^10, time_window=10.0, kwargs...)
-    α = model.linearloss
-    γnl = model.nonlinearcoeff
-    L = model.length
+    const α = model.linearloss
+    const γnl = model.nonlinearcoeff
+    const L = model.length
     beta = model.betacoeff
-    beta_coeff = beta .* [(1im)^n/factorial(n) for n=0:(length(beta)-1)]
+    const beta_coeff = beta .* [(1im)^n/factorial(n) for n=0:(length(beta)-1)]
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
     zspan = (0.0, model.length)
 
@@ -13,9 +13,13 @@ function build_problem(model::ToyModel, ::DynamicNLSE;
     ω0 = 0.0#toy model ω0 is 0
 
     u0 = derive_pulse(model.power_in, model.pulsetime).(tmesh)
-    planned_fft! = plan_fft!(u0, flags=FFTW.MEASURE)
-    planned_ifft! = plan_ifft!(u0, flags=FFTW.MEASURE)
-    D = -1im * Poly(beta_coeff, :ω).(ω) - α/2
+    const planned_fft! = plan_fft!(u0, flags=FFTW.MEASURE)
+    const planned_ifft! = plan_ifft!(u0, flags=FFTW.MEASURE)
+    const D = -1im * Poly(beta_coeff, :ω).(ω) - α/2
+
+    const has_raman = model.has_raman
+    const has_shock = model.has_shock
+
     #TODO: Macro for adding terms to function
     function f(z, u, du)
         @. du = (u * exp(D * z))

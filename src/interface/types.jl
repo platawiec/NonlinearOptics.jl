@@ -138,9 +138,13 @@ mutable struct ToyModel{T} <: AbstractModel
     detuning::T
     betacoeff::Vector{T}
     pulsetime::T
+    has_shock::Bool
+    has_raman::Bool
 end
 ToyModel(;FSR=0.1, nonlinearcoeff=1.0, linearloss=0.009, coupling=0.009,
           power_in = 0.755, length=628e-6, detuning=0.0534, pulsetime=0.1,
-          betacoeff=[0, 0, -0.05]) = ToyModel(FSR, nonlinearcoeff, linearloss,
+          betacoeff=[0, 0, -0.05],
+          has_shock=false, has_raman=false) = ToyModel(FSR, nonlinearcoeff, linearloss,
                                               coupling, power_in, length,
-                                              detuning, betacoeff, pulsetime)
+                                              detuning, betacoeff, pulsetime,
+                                              has_shock, has_raman)
