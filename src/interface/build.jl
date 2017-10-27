@@ -4,29 +4,42 @@ function build_problem(model::ToyModel, ::DynamicNLSE;
     const γnl = model.nonlinearcoeff
     const L = model.length
     beta = model.betacoeff
-    const beta_coeff = beta .* [(1im)^n/factorial(n) for n=0:(length(beta)-1)]
+    const beta_coeff = beta .* [1/factorial(n) for n=0:(length(beta)-1)]
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
     zspan = (0.0, model.length)
 
     ω = get_ωmesh(tmesh)
-    ω = fftshift(ω)
-    ω0 = 0.0#toy model ω0 is 0
+    const dt_mesh = tmesh[2]-tmesh[1]
+    const ω = fftshift(ω)
+    const ω0 = model.ω0
 
     u0 = derive_pulse(model.power_in, model.pulsetime).(tmesh)
     const planned_fft! = plan_fft!(u0, flags=FFTW.MEASURE)
     const planned_ifft! = plan_ifft!(u0, flags=FFTW.MEASURE)
-    const D = -1im * Poly(beta_coeff, :ω).(ω) - α/2
+    const D = 1im * Poly(beta_coeff, :ω).(ω) - α/2
 
     const has_raman = model.has_raman
     const has_shock = model.has_shock
 
+    const shock_term = build_model_shock(model, ω)
+    const frac_raman = 0.18
+    const raman_response = build_model_raman(model, tmesh)
+
     #TODO: Macro for adding terms to function
     function f(z, u, du)
-        @. du = (u * exp(D * z))
+        @. du = u * exp(D * z)
         planned_fft! * du
-        @. du = du * abs2(du)
+        if has_raman
+            raman_term = planned_ifft! * copy(abs2.(du)) # prepare intensity for convolution
+            # mulitiply in fourier space for convolution
+            @. raman_term = raman_term * raman_response
+            planned_fft! * raman_term # fourier transform back
+            @. du = du * ((1-frac_raman)*abs2(du) + frac_raman*raman_term)
+        else
+            @. du = du * abs2(du)
+        end
         planned_ifft! * du
-        @. du = 1im * γnl * du * exp(-D * z)
+        @. du = 1im * γnl * shock_term * du * exp(-D * z)
     end
 
     prob = ODEProblem(f, planned_ifft! * u0, zspan; kwargs...)
@@ -133,4 +146,25 @@ function build_ikedacallback(model)
     end
 
     ikeda_callback = PeriodicCallback(affect!, L)
+end
+
+function build_model_shock(model, ω)
+    ω0 = model.ω0
+
+    if model.has_shock
+        shock_term = (ω + ω0)/ω0
+    else
+        shock_term = one(ω0)
+    end
+    shock_term
+end
+
+function build_model_raman(model, tmesh)
+    raman_response = (1+0im)*similar(tmesh)
+    if model.has_raman
+        tau1 = 0.0122; tau2 = 0.032
+        raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
+        raman_response = length(tmesh)*ifft(fftshift(raman_timeresponse))
+    end
+    raman_response
 end

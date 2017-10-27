@@ -12,7 +12,7 @@
         @series begin
             title := "Intensity"
             subplot := 1
-            ylims := (minimum(sol.prob.tmesh)/25, maximum(sol.prob.tmesh)/25)
+            #ylims := (minimum(sol.prob.tmesh)/25, maximum(sol.prob.tmesh)/25)
             clims := (maximum(intensity)-80, maximum(intensity))
             zmesh, sol.prob.tmesh, intensity
         end

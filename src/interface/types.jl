@@ -129,6 +129,7 @@ mutable struct Model <: AbstractModel
     structure::AbstractStructure
 end
 mutable struct ToyModel{T} <: AbstractModel
+    ω0::T
     FSR::T
     nonlinearcoeff::T
     linearloss::T
@@ -141,10 +142,10 @@ mutable struct ToyModel{T} <: AbstractModel
     has_shock::Bool
     has_raman::Bool
 end
-ToyModel(;FSR=0.1, nonlinearcoeff=1.0, linearloss=0.009, coupling=0.009,
+ToyModel(;ω0=200., FSR=0.1, nonlinearcoeff=1.0, linearloss=0.009, coupling=0.009,
           power_in = 0.755, length=628e-6, detuning=0.0534, pulsetime=0.1,
           betacoeff=[0, 0, -0.05],
-          has_shock=false, has_raman=false) = ToyModel(FSR, nonlinearcoeff, linearloss,
+          has_shock=false, has_raman=false) = ToyModel(ω0, FSR, nonlinearcoeff, linearloss,
                                               coupling, power_in, length,
                                               detuning, betacoeff, pulsetime,
                                               has_shock, has_raman)
