@@ -1,4 +1,4 @@
-function build_problem(model::ToyModel, ::DynamicNLSE;
+function build_problem(model::ToyModel, probtype::Union{DynamicNLSE, DynamicIkeda};
                        tpoints=2^10, time_window=10.0, kwargs...)
     const α = model.linearloss
     const γnl = model.nonlinearcoeff
@@ -25,7 +25,6 @@ function build_problem(model::ToyModel, ::DynamicNLSE;
     const frac_raman = 0.18
     const raman_response = build_model_raman(model, tmesh)
 
-    #TODO: Macro for adding terms to function
     function f(z, u, du)
         @. du = u * exp(D * z)
         planned_fft! * du
@@ -42,8 +41,34 @@ function build_problem(model::ToyModel, ::DynamicNLSE;
         @. du = 1im * γnl * shock_term * du * exp(-D * z)
     end
 
-    prob = ODEProblem(f, planned_ifft! * u0, zspan; kwargs...)
-    prob_NLSE = DynamicNLSEProblem(prob, fftshift(ω), ω0, tmesh, planned_fft!, planned_ifft!, D)
+    if typeof(probtype) <: DynamicIkeda
+        ikeda_callback = build_ikedacallback(model)
+        prob = ODEProblem(f,
+                          planned_ifft! * u0,
+                          zspan;
+                          kwargs...)
+        prob_exp = DynamicIkedaProblem(prob,
+                                       fftshift(ω),
+                                       ω0,
+                                       tmesh,
+                                       planned_fft!,
+                                       planned_ifft!,
+                                       D,
+                                       ikeda_callback)
+    else
+        prob = ODEProblem(f,
+                          planned_ifft! * u0,
+                          zspan;
+                          kwargs...)
+        prob_exp = DynamicNLSEProblem(prob,
+                                  fftshift(ω),
+                                  ω0,
+                                  tmesh,
+                                  planned_fft!,
+                                  planned_ifft!,
+                                  D)
+    end
+    prob_exp
 end
 
 function build_problem(model::ToyModel, ::DynamicLL;
@@ -87,51 +112,6 @@ function build_problem(model::ToyModel, ::DynamicLL;
     prob_LL = DynamicLLProblem(prob, fftshift(ω), ω0, tmesh, planned_fft!, planned_ifft!, D)
 end
 
-function build_problem(model::ToyModel, ::DynamicIkeda;
-                       tpoints=2^10,
-                       time_window=10.0,
-                       num_roundtrips=100,
-                       kwargs...)
-    α = model.linearloss
-    γnl = model.nonlinearcoeff
-    L = model.length
-    beta = model.betacoeff
-    beta_coeff = beta .* [(1im)^n/factorial(n) for n=0:(length(beta)-1)]
-    tmesh = linspace(-time_window/2, time_window/2, tpoints)
-    zspan = (0.0, model.length * num_roundtrips)
-
-    ω = get_ωmesh(tmesh)
-    ω = fftshift(ω)
-    ω0 = 0.0#toy model ω0 is 0
-
-    u0 = derive_pulse(model.power_in, model.pulsetime).(tmesh)
-    planned_fft! = plan_fft!(u0, flags=FFTW.MEASURE)
-    planned_ifft! = plan_ifft!(u0, flags=FFTW.MEASURE)
-    D = -1im * Poly(beta_coeff, :ω).(ω) - α/2
-    #TODO: Macro for adding terms to function
-    function f(z, u, du)
-        @. du = (u * exp(D * z))
-        planned_fft! * du
-        @. du = du * abs2(du)
-        planned_ifft! * du
-        @. du = 1im * γnl * du * exp(-D * z)
-    end
-
-    ikeda_callback = build_ikedacallback(model)
-    prob = ODEProblem(f,
-                      planned_ifft! * u0,
-                      zspan;
-                      kwargs...)
-    prob_NLSE = DynamicIkedaProblem(prob,
-                                   fftshift(ω),
-                                   ω0,
-                                   tmesh,
-                                   planned_fft!,
-                                   planned_ifft!,
-                                   D,
-                                   ikeda_callback)
-end
-
 function build_ikedacallback(model)
     L = model.length
     FSR = model.FSR
@@ -146,6 +126,11 @@ function build_ikedacallback(model)
     end
 
     ikeda_callback = PeriodicCallback(affect!, L)
+end
+
+function build_GNLSE(model, tpoints, time_window)
+
+
 end
 
 function build_model_shock(model, ω)
