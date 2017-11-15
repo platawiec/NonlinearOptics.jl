@@ -8,6 +8,7 @@ function build_problem(model::Model, probtype;
 
     const dispersion = get_func(model.dispersion)
     const nonlinearcoeff = get_func(model.nonlinearcoeff)
+    const α = get_func(model.linearloss)
 
     const D = @. 1im * dispersion(ω) - α(ω)/2
     const γnl = @. nonlinearcoeff(ω)
@@ -20,11 +21,55 @@ function build_problem(model::Model, probtype;
     const raman_response = build_model_raman(model, tmesh)
 
 
+    function f(z, u, du)
+        @. du = u * exp(D * z)
+        planned_fft! * du
+        if has_raman
+            raman_term = planned_ifft! * copy(abs2.(du)) # prepare intensity for convolution
+            # mulitiply in fourier space for convolution
+            @. raman_term = raman_term * raman_response
+            planned_fft! * raman_term # fourier transform back
+            @. du = du * ((1-frac_raman)*abs2(du) + frac_raman*raman_term)
+        else
+            @. du = du * abs2(du)
+        end
+        planned_ifft! * du
+        @. du = 1im * γnl * shock_term * du * exp(-D * z)
+    end
+
+    if typeof(probtype) <: DynamicIkeda
+        ikeda_callback = build_ikedacallback(model)
+        prob = ODEProblem(f,
+                          planned_ifft! * u0,
+                          zspan;
+                          kwargs...)
+        prob_exp = DynamicIkedaProblem(prob,
+                                       fftshift(ω),
+                                       ω0,
+                                       tmesh,
+                                       planned_fft!,
+                                       planned_ifft!,
+                                       D,
+                                       ikeda_callback)
+    else
+        prob = ODEProblem(f,
+                          planned_ifft! * u0,
+                          zspan;
+                          kwargs...)
+        prob_exp = DynamicNLSEProblem(prob,
+                                  fftshift(ω),
+                                  ω0,
+                                  tmesh,
+                                  planned_fft!,
+                                  planned_ifft!,
+                                  D)
+    end
+    return prob_exp
 end
 
 # takes a scalar and turns it into a callable
 function get_func(attr::Number)
-    f(x) = attr
+    f(x...) = attr
     return f
 end
 get_func(attr) = attr
@@ -126,14 +171,30 @@ function build_problem(model::ToyModel, ::DynamicLL;
     else
         u0 = derive_pulse(model.power_in, model.pulsetime).(tmesh)
     end
-    planned_fft! = plan_fft!(u0, flags=FFTW.MEASURE)
-    planned_ifft! = plan_ifft!(u0, flags=FFTW.MEASURE)
-    D = FSR * (-1im * L * Poly(beta_coeff, :ω).(ω) - α - 1im * detuning)
+
+    const has_raman = model.has_raman
+    const has_shock = model.has_shock
+
+    const shock_term = build_model_shock(model, ω)
+    const frac_raman = 0.18
+    const raman_response = build_model_raman(model, tmesh)
+
+    const planned_fft! = plan_fft!(u0, flags=FFTW.MEASURE)
+    const planned_ifft! = plan_ifft!(u0, flags=FFTW.MEASURE)
+    const D = FSR * (-1im * L * Poly(beta_coeff, :ω).(ω) - α - 1im * detuning)
     #TODO: Macro for adding terms to function
     function f(z, u, du)
         @. du = (u * exp(D * z))
         planned_fft! * du
-        @. du = du * abs2(du)
+        if has_raman
+            raman_term = planned_ifft! * copy(abs2.(du)) # prepare intensity for convolution
+            # mulitiply in fourier space for convolution
+            @. raman_term = raman_term * raman_response
+            planned_fft! * raman_term # fourier transform back
+            @. du = du * ((1-frac_raman)*abs2(du) + frac_raman*raman_term)
+        else
+            @. du = du * abs2(du)
+        end
         planned_ifft! * du
         @. du = (1im * γnl * L * FSR * du) * exp(-D * z)
         du[1] = sqrtcoupling * Ein * FSR * exp(-D[1] * z)
@@ -157,11 +218,6 @@ function build_ikedacallback(model)
     end
 
     ikeda_callback = PeriodicCallback(affect!, L)
-end
-
-function build_GNLSE(model, tpoints, time_window)
-
-
 end
 
 function build_model_shock(model, ω)

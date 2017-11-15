@@ -24,7 +24,7 @@ module NonlinearOptics
     include("interface/solvertypes.jl")
     include("interface/conversions.jl")
     include("interface/interface.jl")
-    include("optics/optics_utils.jl")
+    include("optics/utils.jl")
     include("optics/dispersion.jl")
     include("optics/pulses.jl")
     include("interface/build.jl")
