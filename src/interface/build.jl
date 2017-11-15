@@ -1,5 +1,36 @@
+function build_problem(model::Model, probtype;
+                       tpoints=2^13, time_window=10.0, kwargs...)
+
+    ω = get_ωmesh(tmesh)
+    const dt_mesh = tmesh[2]-tmesh[1]
+    const ω = fftshift(ω)
+    const ω0 = model.ω0
+
+    const dispersion = get_func(model.dispersion)
+    const nonlinearcoeff = get_func(model.nonlinearcoeff)
+
+    const D = @. 1im * dispersion(ω) - α(ω)/2
+    const γnl = @. nonlinearcoeff(ω)
+
+    const has_raman = model.has_raman
+    const has_shock = model.has_shock
+
+    const shock_term = build_model_shock(model, ω)
+    const frac_raman = 0.18
+    const raman_response = build_model_raman(model, tmesh)
+
+
+end
+
+# takes a scalar and turns it into a callable
+function get_func(attr::Number)
+    f(x) = attr
+    return f
+end
+get_func(attr) = attr
+
 function build_problem(model::ToyModel, probtype::Union{DynamicNLSE, DynamicIkeda};
-                       tpoints=2^10, time_window=10.0, kwargs...)
+                   tpoints=2^10, time_window=10.0, kwargs...)
     const α = model.linearloss
     const γnl = model.nonlinearcoeff
     const L = model.length

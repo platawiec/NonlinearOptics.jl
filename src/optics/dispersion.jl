@@ -23,6 +23,18 @@ function get_beta(mode::ToyMode, source, numorders::Int)
     (numorders+1) > length(β) && error("model does not have sufficient orders of β")
     return β[1:(numorders+1)]
 end
+
+function get_stationarydispersion(mode, source)
+    const source_ω = getω(source)
+
+    β = get_beta(mode, source, 1)
+    return ω->(mode.dispersion(ω) - β[1] - β[2] * source_ω)
+end
+
+function get_dispersionfrombeta(beta_coeff)
+    return Poly(beta_coeff, :ω)
+end
+
 """
     get_groupindex -> Real
 

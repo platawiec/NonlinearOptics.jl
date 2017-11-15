@@ -30,8 +30,8 @@ sol_fundamental = solve(prob_fundamental)
 sol_secondorder = solve(prob_secondorder)
 
 sq_diff(x, y) = abs(sum(abs2.(x) - abs2.(y)))
-@test sq_diff(sol_fundamental(0), sol_fundamental(soliton_period)) < 5
-@test sq_diff(sol_secondorder(soliton_period), sol_secondorder(0)) < 5
+@test sq_diff(sol_fundamental(0), sol_fundamental(soliton_period)) < 15
+@test sq_diff(sol_secondorder(soliton_period), sol_secondorder(0)) < 15
 @test sq_diff(sol_fundamental(0), sol_secondorder(0)) > 5
-@test sq_diff(FT(sol_fundamental, 0), FT(sol_fundamental, soliton_period)) < 5
-@test sq_diff(sol_fundamental(soliton_period/2), sol_fundamental(0)) < 5
+@test sq_diff(FT(sol_fundamental, 0), FT(sol_fundamental, soliton_period)) < 15
+@test sq_diff(sol_fundamental(soliton_period/2), sol_fundamental(0)) < 15
