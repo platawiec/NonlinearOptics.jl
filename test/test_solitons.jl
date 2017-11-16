@@ -14,7 +14,7 @@ soliton_fundamental = ToyModel(;betacoeff=[0.0, 0.0, β₂],
                                 length=soliton_period)
 
 P_pulse_secondorder = (abs(β₂/γnl)/(T_T0)*2)^2
-soliton_secondorder = ToyModel(;betacoeff=[0.0, 0.0, β₂],
+soliton_secondorder = ToyModel(;ω0=200e3, betacoeff=[0.0, 0.0, β₂],
                                 nonlinearcoeff=γnl,
                                 linearloss=0.0,
                                 power_in=P_pulse_secondorder,
