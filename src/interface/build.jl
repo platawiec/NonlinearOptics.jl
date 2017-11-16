@@ -2,26 +2,30 @@ function build_problem(model, probtype::DynamicNLSE;
                        tpoints=2^13, time_window=10.0, kwargs...)
 
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
-    zspan = (0.0, model.length)
+    zspan = (0.0, pathlength(model))
 
     ω = get_ωmesh(tmesh)
     const dt_mesh = tmesh[2]-tmesh[1]
     const ω = fftshift(ω)
-    const ω0 = model.ω0
-    u0 = derive_pulse(model.power_in, model.pulsetime).(tmesh)
+    const ω0 = get_ω0(model)
+    u0 = derive_pulse.(model, tmesh)
 
     f, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
-    prob = ODEProblem(f,
-                      planned_ifft! * u0,
-                      zspan;
-                      kwargs...)
-    prob_exp = DynamicNLSEProblem(prob,
-                              fftshift(ω),
-                              ω0,
-                              tmesh,
-                              planned_fft!,
-                              planned_ifft!,
-                              D)
+    prob = ODEProblem(
+        f,
+        planned_ifft! * u0,
+        zspan;
+        kwargs...
+    )
+    prob_exp = DynamicNLSEProblem(
+        prob,
+        fftshift(ω),
+        ω0,
+        tmesh,
+        planned_fft!,
+        planned_ifft!,
+        D
+    )
     return prob_exp
 end
 
@@ -29,13 +33,13 @@ function build_problem(model, probtype::DynamicIkeda;
                        tpoints=2^13, time_window=10.0, kwargs...)
 
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
-    zspan = (0.0, model.length)
+    zspan = (0.0, pathlength(model))
 
     ω = get_ωmesh(tmesh)
     const dt_mesh = tmesh[2]-tmesh[1]
     const ω = fftshift(ω)
     const ω0 = model.ω0
-    u0 = derive_pulse(model.power_in, model.pulsetime).(tmesh)
+    u0 = derive_pulse.(model, tmesh)
 
     f, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
     ikeda_callback = build_ikedacallback(model)

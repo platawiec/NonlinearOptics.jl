@@ -21,6 +21,7 @@ module NonlinearOptics
 
     include("interface/fit_util.jl")
     include("interface/types.jl")
+    include("interface/models.jl")
     include("interface/solvertypes.jl")
     include("interface/conversions.jl")
     include("interface/interface.jl")

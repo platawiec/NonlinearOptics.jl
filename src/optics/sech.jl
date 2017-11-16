@@ -1,0 +1,2 @@
+struct SechPulse
+end

@@ -126,7 +126,7 @@ PulsedLaser(f, avgP, reprate, pulsetime, kwargs...) = PulsedLaser(
 abstract type AbstractModel end
 mutable struct Model <: AbstractModel
     laser::AbstractLaser
-    structure::AbstractStructure
+    structure::Vector{AbstractStructure}
 end
 mutable struct ToyModel{T} <: AbstractModel
     ω0::T

@@ -1,8 +1,8 @@
 T_FWHM = 0.05 # pulse time paramater passed as FWHM
-betacoeff = [0., 0., -120.0, 0.0, 0.005]
+betacoeff = [0., 0., -0.12, 0.0, 0.005e-3]
 γnl = 1.
 ω0 = 2π*c/(1550e-9) # c is m/ps, exported from NonlinearOptics
-P_pulse = 10000.
+P_pulse = 10.
 fiber_length = 0.020
 nlo = ToyModel(;ω0=ω0, betacoeff=betacoeff,
                    nonlinearcoeff=γnl,
@@ -10,8 +10,8 @@ nlo = ToyModel(;ω0=ω0, betacoeff=betacoeff,
                    power_in=P_pulse,
                    pulsetime=T_FWHM,
                    length=fiber_length,
-                   has_shock=false,
-                   has_raman=false)
+                   has_shock=true,
+                   has_raman=true)
 
 prob_nlo = build_problem(nlo, DynamicNLSE();
                             tpoints=2^13, time_window=10.)

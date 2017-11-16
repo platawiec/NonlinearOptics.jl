@@ -14,7 +14,7 @@ wg_simple = Waveguide(1e-3, 100, SiO2)
 add_mode!(wg_simple, mode)
 # Note: pulse width is in 1/THz = fs
 source_simple = PulsedLaser(Frequency(200), 1.0, 1.0, 0.020)
-model_NLSE = Model(source_simple, wg_simple)
+model_NLSE = Model(source_simple, [wg_simple])
 # Laser answers: δ₀ can change during experiment, ω₀, and Ein? All can be
 # parameters of cw laser. Solver ?s: How many dispersive orders
 # should we use (keyword, default=3)? Initial conditions for NLSE? How do we
@@ -24,4 +24,4 @@ model_NLSE = Model(source_simple, wg_simple)
 res_simple = CircularResonator(300e-6, SiO2)
 add_mode!(res_simple, mode)
 source_CW = CWLaser(Frequency(200), 0.05, 1.0)
-model_LL = Model(source_CW, res_simple)
+model_LL = Model(source_CW, [res_simple])

@@ -26,10 +26,6 @@ function der(attr::AbstractOpticalAttr, query; order=1)
     der(attr.fit_func, query; order=order)
 end
 
-
-function circumference(res::CircularResonator) 2pi*res.radius end
-function circumference(res::RacetrackResonator) 2pi*res.radius + 2*res.length end
-
 function fit(attr::AbstractOpticalAttr, poly_order=12)
     ω = getω(attr)
     μ = mean(ω)
