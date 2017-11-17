@@ -7,7 +7,7 @@ Aeff = OpticalAttr(1e-12, "Aeff (m²)")
 loss = OpticalAttr(1e-3, "Loss (1/m)")
 coupling = OpticalAttr(0.6, "Coupling")
 
-mode = Mode(neff, Aeff, loss, corefrac, coupling)
+mode = Mode(neff, Aeff, loss, corefrac, coupling, false, false)
 
 # 10 mm long waveguide in 100 orientation
 wg_simple = Waveguide(1e-3, 100, SiO2)

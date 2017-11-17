@@ -1,15 +1,14 @@
 module NonlinearOptics
     using Polynomials
-    using OrdinaryDiffEq, DiffEqBase
+    using OrdinaryDiffEq, DiffEqBase, Tensors
     using Juno
     using RecursiveArrayTools, MuladdMacro, Parameters
 
     using RecipesBase
 
     import DiffEqCallbacks: PeriodicCallback
-    import DiffEqBase: solve, solve!, init, step!,
-                       build_solution, initialize!, isinplace
     import Base: getindex, setindex!
+    import DiffEqBase: solve
 
     abstract type AbstractNLSEProblem{uType, tType, zType} <: DEProblem end
 

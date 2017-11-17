@@ -8,12 +8,12 @@ function build_problem(model, probtype::DynamicNLSE;
     const dt_mesh = tmesh[2]-tmesh[1]
     const ω = fftshift(ω)
     const ω0 = get_ω0(model)
-    u0 = derive_pulse.(model, tmesh)
+    u0 = derive_pulse(model, tmesh)
 
     f, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
     prob = ODEProblem(
         f,
-        planned_ifft! * u0,
+        planned_ifft! * u0[:, 1],
         zspan;
         kwargs...
     )
@@ -120,7 +120,7 @@ function build_GNLSE(model::ToyModel, ω, tmesh)
 end
 
 function build_GNLSE(model::Model, ω, tmesh)
-
+    # variables indexed to i.e. α[i,j,k] -> α[(ω), (modes), (structure segment)]
     const α = linearloss(model, ω)
     const γnl = nonlinearcoeff(model, ω)
     const beta = stationarydispersion(model, ω)
@@ -134,20 +134,26 @@ function build_GNLSE(model::Model, ω, tmesh)
     const shock_term = build_model_shock(model, ω)
     const raman_response = build_model_raman(model, tmesh)
 
+    const num_mode = num_modes(model)
+    const structure_pos = cumsum(pathlength.(model.structure))
+    const get_structure_idx = (z) -> count(i->(z>i), structure_pos)+1
     function f(z, u, du)
-        @. du = u * exp(D * z)
-        planned_fft! * du
-        if use_raman
-            raman_term = planned_ifft! * copy(abs2.(du)) # prepare intensity for convolution
-            # mulitiply in fourier space for convolution
-            @. raman_term = raman_term * raman_response
-            planned_fft! * raman_term # fourier transform back
-            @. du = du * ((1-frac_raman)*abs2(du) + frac_raman*raman_term)
-        else
-            @. du = du * abs2(du)
+        structure_idx = get_structure_idx(z)
+        for mode_idx in 1:num_mode
+            du[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z)
+            planned_fft! * view(du, :, mode_idx)
+            if use_raman[mode_idx]
+                raman_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
+                # mulitiply in fourier space for convolution
+                @. raman_term = raman_term * raman_response
+                planned_fft! * raman_term # fourier transform back
+                du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2(view(du, :, mode_idx)) + frac_raman*raman_term)
+            else
+                du[:, mode_idx] .= view(du, :, mode_idx) .* abs2.(view(du, :, mode_idx))
+            end
+            planned_ifft! * view(du, :, mode_idx)
+            du[:, mode_idx] .= 1im * view(γnl, :, mode_idx, structure_idx) .* view(shock_term, :, mode_idx, structure_idx) .* view(du, :, mode_idx) .* exp(-view(D, mode_idx, structure_idx) * z)
         end
-        planned_ifft! * du
-        @. du = 1im * γnl * shock_term * du * exp(-D * z)
     end
     return f, D, planned_fft!, planned_ifft!
 end
@@ -210,21 +216,47 @@ end
 
 function build_model_shock(model::ToyModel, ω)
     ω0 = model.ω0
-
     if model.has_shock
         shock_term = (ω + ω0)/ω0
     else
         shock_term = one(ω0)
     end
-    shock_term
+    return shock_term
 end
 
-function build_model_raman(model, tmesh)
+function build_model_shock(model::Model, ω)
+    const ω0 = getω(model.laser)
+    shock_term = ones(typeof(ω0), length(ω), num_modes(model), num_structures(model))
+    for (i, structure) in enumerate(model.structure)
+        for (j, mode) in enumerate(structure.modes)
+            if mode.has_shock
+                shock_term[:, j, i] = (ω + ω0)/ω0
+            end
+        end
+    end
+    return shock_term
+end
+
+function build_model_raman(model::ToyModel, tmesh)
     raman_response = (1+0im)*similar(tmesh)
     if model.has_raman
         tau1 = 0.0122; tau2 = 0.032
         raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
         raman_response = length(tmesh)*ifft(fftshift(raman_timeresponse))
     end
-    raman_response
+    return raman_response
+end
+function build_model_raman(model::Model, tmesh)
+    raman_response = zeros(eltype((1+0im)*tmesh), length(tmesh), num_modes(model), num_structures(model))
+    for (i, structure) in enumerate(model.structure)
+        for (j, mode) in enumerate(structure.modes)
+            if mode.has_raman
+                tau1 = structure.material.tau1
+                tau2 = structure.material.tau2
+                raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
+                raman_response[:, j ,i] = length(tmesh)*ifft(fftshift(raman_timeresponse))
+            end
+        end
+    end
+    return raman_response
 end

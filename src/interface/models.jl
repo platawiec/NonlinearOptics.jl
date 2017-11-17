@@ -9,7 +9,13 @@ pathlength(m::Model) = sum(pathlength, m.structure)
 get_ω0(m::ToyModel) = m.ω0
 get_ω0(m::Model) = getω(m.laser)
 
-derive_pulse(m::Model, t) = derive_pulse(m.laser, t)
+function derive_pulse(m::Model, t)
+    #TODO: Generic injection of pulse to arbitrary mode
+    pulse = derive_pulse(m.laser, t)
+    full_pulse = zeros(eltype(pulse), length(t), num_modes(m))
+    full_pulse[:, 1] = pulse
+    return full_pulse
+end
 function derive_pulse(m::ToyModel, t)
     sqrtpower = sqrt(m.power_in)
     pulse_0 = m.pulsetime/(2*log(1+sqrt(2)))
@@ -23,10 +29,10 @@ end
 
 linearloss(model::ToyModel, ω) = model.linearloss
 function linearloss(model::Model, ω)
-    loss = zeros(ω)
-    for structure in model.structure
-        for mode in structure.modes
-            loss = mode.linearloss.(ω)
+    loss = zeros(eltype(ω), length(ω), num_modes(model), num_structures(model))
+    for (i, structure) in enumerate(model.structure)
+        for (j, mode) in enumerate(structure.modes)
+            loss[:, j, i] = mode.linearloss.(ω)
         end
     end
     return loss
@@ -36,11 +42,11 @@ nonlinearcoeff(model::ToyModel, ω) = model.nonlinearcoeff
 function nonlinearcoeff(model::Model, ω)
     #TODO: fix up zero setting
     # pull n2 from structure
-    nlcoeff = zero(ω)
-    for structure in model.structure
+    nlcoeff = zeros(eltype(ω), length(ω), num_modes(model), num_structures(model))
+    for (i, structure) in enumerate(model.structure)
         nl_n = structure.material.nonlinearindex
-        for mode in structure.modes
-            nlcoeff = nl_n * mode.corefraction.(ω) ./ mode.effectivearea.(ω)
+        for (j, mode) in enumerate(structure.modes)
+            nlcoeff[:, j, i] = nl_n * mode.corefraction.(ω) ./ mode.effectivearea.(ω)
         end
     end
     return nlcoeff
@@ -73,3 +79,6 @@ function has_raman(m::Model)
     end
     return has_raman
 end
+
+num_structures(m::Model) = length(m.structure)
+num_modes(m::Model) = length(m.structure[1].modes)
