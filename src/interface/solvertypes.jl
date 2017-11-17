@@ -1,7 +1,7 @@
 # Dispatch types to call different problem builders
 abstract type AbstractExperiment end
-abstract type AbstractDynamicExperiment end
-abstract type AbstractSteadyStateExperiment end
+abstract type AbstractDynamicExperiment <: AbstractExperiment end
+abstract type AbstractSteadyStateExperiment <: AbstractExperiment end
 struct DynamicLL <: AbstractDynamicExperiment end
 struct DynamicNLSE <: AbstractDynamicExperiment end
 struct DynamicIkeda <: AbstractDynamicExperiment end

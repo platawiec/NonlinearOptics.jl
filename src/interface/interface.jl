@@ -19,6 +19,7 @@ OpticalAttr is callable. Giving a source source will return the
 value of the AbstractOpticalAttr interpolated at that point
 """
 (attr::OpticalAttr)(source) = attr.fit_func(getω(source))
+(attr::OpticalAttr)(ω::Number) = attr.fit_func(ω)
 """
 Alias for der
 """

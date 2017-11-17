@@ -1,6 +1,3 @@
-
-
-
 function derive_pulse(average_power, rep_rate, pulse_time, pulse_type::Symbol=:gaussian, chirp=0)
     pulse_energy = sqrt(average_power / rep_rate / pulse_time)
     if pulse_type == :gaussian

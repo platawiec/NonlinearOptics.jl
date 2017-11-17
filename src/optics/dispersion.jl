@@ -4,6 +4,15 @@
 returns the dispersion of the mode at a given wavelength up to
 the given order for the structure's modes
 """
+function get_beta(mode::Mode, source)
+    effectiveindex = mode.effectiveindex
+    ω = getω(effectiveindex)
+    length(ω) == 1 && error("the given refractive index is non-dispersive")
+    β₀ = ω/c .* get_attr(effectiveindex)
+    β = OpticalAttr(frequency(effectiveindex), β₀, "β")
+    return β
+end
+
 function get_beta(mode::Mode, source, numorders::Int)
     effectiveindex = mode.effectiveindex
     ω = getω(effectiveindex)
@@ -25,10 +34,10 @@ function get_beta(mode::ToyMode, source, numorders::Int)
 end
 
 function get_stationarydispersion(mode, source)
-    const source_ω = getω(source)
-
-    β = get_beta(mode, source, 1)
-    return ω->(mode.dispersion(ω) - β[1] - β[2] * source_ω)
+    source_ω = getω(source)
+    beta = get_beta(mode, source)
+    beta_linear = get_beta(mode, source, 1)
+    return ω->(beta(ω) - beta_linear[1] - beta_linear[2] * source_ω)
 end
 
 function get_dispersionfrombeta(beta_coeff)

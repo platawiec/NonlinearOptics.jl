@@ -84,28 +84,60 @@ function build_problem(model::ToyModel, ::DynamicLL;
     prob_LL = DynamicLLProblem(prob, fftshift(ω), ω0, tmesh, planned_fft!, planned_ifft!, D)
 end
 
-function build_GNLSE(model, ω, tmesh)
+function build_GNLSE(model::ToyModel, ω, tmesh)
 
-    const α = model.linearloss
-    const γnl = model.nonlinearcoeff
-    beta = model.betacoeff
-    const beta_coeff = beta .* [1/factorial(n) for n=0:(length(beta)-1)]
+    const α = linearloss(model, ω)
+    const γnl = nonlinearcoeff(model, ω)
+    const beta = stationarydispersion(model, ω)
 
     const planned_fft! = plan_fft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
     const planned_ifft! = plan_ifft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
-    const D = 1im * Poly(beta_coeff, :ω).(ω) - α/2
+    const D = 1im .* beta .- α/2
 
-    const has_raman = model.has_raman
-    const has_shock = model.has_shock
+    const use_raman = has_raman(model)
 
     const shock_term = build_model_shock(model, ω)
+    const raman_response = build_model_raman(model, tmesh)
+
     const frac_raman = 0.18
+
+    function f(z, u, du)
+        @. du = u * exp(D * z)
+        planned_fft! * du
+        if use_raman
+            raman_term = planned_ifft! * copy(abs2.(du)) # prepare intensity for convolution
+            # mulitiply in fourier space for convolution
+            @. raman_term = raman_term * raman_response
+            planned_fft! * raman_term # fourier transform back
+            @. du = du * ((1-frac_raman)*abs2(du) + frac_raman*raman_term)
+        else
+            @. du = du * abs2(du)
+        end
+        planned_ifft! * du
+        @. du = 1im * γnl * shock_term * du * exp(-D * z)
+    end
+    return f, D, planned_fft!, planned_ifft!
+end
+
+function build_GNLSE(model::Model, ω, tmesh)
+
+    const α = linearloss(model, ω)
+    const γnl = nonlinearcoeff(model, ω)
+    const beta = stationarydispersion(model, ω)
+
+    const planned_fft! = plan_fft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
+    const planned_ifft! = plan_ifft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
+    const D = 1im .* beta .- α/2
+
+    const use_raman = has_raman(model)
+
+    const shock_term = build_model_shock(model, ω)
     const raman_response = build_model_raman(model, tmesh)
 
     function f(z, u, du)
         @. du = u * exp(D * z)
         planned_fft! * du
-        if has_raman
+        if use_raman
             raman_term = planned_ifft! * copy(abs2.(du)) # prepare intensity for convolution
             # mulitiply in fourier space for convolution
             @. raman_term = raman_term * raman_response
@@ -122,8 +154,8 @@ end
 
 function build_GLLE(model, ω, tmesh)
     FSR = model.FSR
-    α = model.linearloss
-    γnl = model.nonlinearcoeff
+    α = linearloss(model, ω)
+    γnl = nonlinearcoeff(model, ω)
     L = model.length
     detuning = model.detuning
     sqrtcoupling = sqrt(model.coupling)
@@ -176,7 +208,7 @@ function build_ikedacallback(model)
     ikeda_callback = PeriodicCallback(affect!, L)
 end
 
-function build_model_shock(model, ω)
+function build_model_shock(model::ToyModel, ω)
     ω0 = model.ω0
 
     if model.has_shock

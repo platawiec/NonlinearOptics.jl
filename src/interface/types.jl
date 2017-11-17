@@ -64,11 +64,15 @@ mutable struct Mode <: AbstractMode
     linearloss::OpticalAttr
     corefraction::OpticalAttr
     coupling::OpticalAttr
+    has_shock::Bool
+    has_raman::Bool
 end
 Mode(n_eff, area_eff) = Mode(n_eff, area_eff,
                              OpticalAttr(0.0, "Linear Loss"),
                              OpticalAttr(1.0, "Core Fraction"),
-                             OpticalAttr(1.0, "Coupling"))
+                             OpticalAttr(1.0, "Coupling"),
+                             false,
+                             false)
 
 struct ToyMode <: AbstractMode
     beta::Vector{OpticalAttr}
@@ -116,12 +120,11 @@ mutable struct CWLaser{T1, T2} <: AbstractLaser
     power::T2
 end
 CWLaser(f, δ, P) = CWLaser{typeof(δ), typeof(P)}(f, δ, P)
-mutable struct PulsedLaser <: AbstractLaser
+mutable struct PulsedLaser{T1,T2} <: AbstractLaser
     frequency::Frequency
-    pulse_init
+    power_in::T1
+    pulsetime::T2
 end
-PulsedLaser(f, avgP, reprate, pulsetime, kwargs...) = PulsedLaser(
-                                            f, derive_pulse(avgP, reprate, pulsetime, kwargs...))
 
 abstract type AbstractModel end
 mutable struct Model <: AbstractModel

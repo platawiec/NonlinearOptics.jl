@@ -32,7 +32,6 @@ module NonlinearOptics
     include("interface/solve.jl")
     include("materials/materials.jl")
     include("plot_recipes.jl")
-    include("example_models.jl")
 
     export NLSEProblem, NLSESolution, SymmetrizedSplitStep
     export prob_bright_soliton, prob_linear_pulse, prob_dispersive_pulse,
