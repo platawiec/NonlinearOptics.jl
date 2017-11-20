@@ -11,9 +11,10 @@ function build_problem(model, probtype::DynamicNLSE;
     u0 = derive_pulse(model, tmesh)
 
     f, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
+    planned_ifft! * view(u0, :, 1)
     prob = ODEProblem(
         f,
-        planned_ifft! * u0[:, 1],
+        u0,
         zspan;
         kwargs...
     )
@@ -39,7 +40,7 @@ function build_problem(model, probtype::DynamicIkeda;
     const dt_mesh = tmesh[2]-tmesh[1]
     const ω = fftshift(ω)
     const ω0 = model.ω0
-    u0 = derive_pulse.(model, tmesh)
+    u0 = derive_pulse(model, tmesh)
 
     f, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
     ikeda_callback = build_ikedacallback(model)
@@ -134,6 +135,9 @@ function build_GNLSE(model::Model, ω, tmesh)
     const shock_term = build_model_shock(model, ω)
     const raman_response = build_model_raman(model, tmesh)
 
+    #TODO: generalize
+    const frac_raman = 0.18
+
     const num_mode = num_modes(model)
     const structure_pos = cumsum(pathlength.(model.structure))
     const get_structure_idx = (z) -> count(i->(z>i), structure_pos)+1
@@ -145,7 +149,7 @@ function build_GNLSE(model::Model, ω, tmesh)
             if use_raman[mode_idx]
                 raman_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
                 # mulitiply in fourier space for convolution
-                @. raman_term = raman_term * raman_response
+                @. raman_term = raman_term * raman_response[:, mode_idx, structure_idx]
                 planned_fft! * raman_term # fourier transform back
                 du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2(view(du, :, mode_idx)) + frac_raman*raman_term)
             else
@@ -251,8 +255,8 @@ function build_model_raman(model::Model, tmesh)
     for (i, structure) in enumerate(model.structure)
         for (j, mode) in enumerate(structure.modes)
             if mode.has_raman
-                tau1 = structure.material.tau1
-                tau2 = structure.material.tau2
+                tau1 = structure.material.raman.tau1
+                tau2 = structure.material.raman.tau2
                 raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
                 raman_response[:, j ,i] = length(tmesh)*ifft(fftshift(raman_timeresponse))
             end

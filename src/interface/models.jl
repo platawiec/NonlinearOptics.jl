@@ -71,10 +71,10 @@ end
 
 has_raman(m::ToyModel) = m.has_raman
 function has_raman(m::Model)
-    has_raman = false
+    has_raman = fill(false, num_modes(m))
     for structure in m.structure
-        for mode in structure.modes
-            has_raman = mode.has_raman
+        for (i, mode) in enumerate(structure.modes)
+            has_raman[i] = mode.has_raman
         end
     end
     return has_raman
