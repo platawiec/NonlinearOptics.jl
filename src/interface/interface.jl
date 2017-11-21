@@ -39,3 +39,12 @@ end
 function add_mode!(structure, mode::Mode)
     push!(structure.modes, mode)
 end
+function add_interaction!(structure, mode_1::Mode, mode_2::Mode)
+    !(mode_1 in structure.modes) && error("Mode not found in structure")
+    !(mode_2 in structure.modes) && error("Mode not found in structure")
+
+    mode_1_idx = findfirst(structure.modes, mode_1)
+    mode_2_idx = findfirst(structure.modes, mode_2)
+    structure.interactions[mode_1_idx] = mode_2_idx
+    structure.interactions[mode_2_idx] = mode_1_idx
+end

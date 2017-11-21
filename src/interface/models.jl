@@ -82,3 +82,33 @@ end
 
 num_structures(m::Model) = length(m.structure)
 num_modes(m::Model) = length(m.structure[1].modes)
+
+function get_structure_idx(structures, z)
+    structure_pos = cumsum(pathlength.(structures))
+    idx = count(i->(z>i), structure_pos)+1
+    return idx
+end
+# placeholder for now
+function get_orientation(structure, z)
+    return Vec{3}((1, 0, 0)), π/4
+end
+
+# need to get material tensor and wait for Tensors.jl to merge with rotation
+function raman_tensor(structure, z)
+    axis_vec, rot_angle = get_orientation(structure, z)
+    #tensor = material.raman_tensor
+    tensor = CubicRamanTensor() # placeholder
+    #tensor = rotate(tensor, axis_vec, rot_angle)
+    return tensor
+end
+function electronic_tensor(structure, z)
+    axis_vec, rot_angle = get_orientation(structure, z)
+    #tensor = material.electronic_tensor
+    tensor = CubicElectronicTensor(0.1) # TODO placeholders
+    #tensor = rotate(tensor, axis_vec, rot_angle)
+    return tensor
+end
+
+interacts_with_other_mode(mode) = mode.has_interaction
+get_paired_mode_idx(structure, mode_idx) = structure.interactions[mode_idx]
+get_polarization(mode) = mode.polarization == :TM ? 1 : 2

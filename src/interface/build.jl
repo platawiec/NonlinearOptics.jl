@@ -139,19 +139,37 @@ function build_GNLSE(model::Model, ω, tmesh)
     const frac_raman = 0.18
 
     const num_mode = num_modes(model)
-    const structure_pos = cumsum(pathlength.(model.structure))
-    const get_structure_idx = (z) -> count(i->(z>i), structure_pos)+1
     function f(z, u, du)
-        structure_idx = get_structure_idx(z)
+        structure_idx = get_structure_idx(model.structure, z)
+        structure_curr = model.structure[structure_idx]
+        raman_tens = raman_tensor(structure_curr, z)
+        electronic_tens = electronic_tensor(structure_curr, z)
         for mode_idx in 1:num_mode
             du[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z)
             planned_fft! * view(du, :, mode_idx)
             if use_raman[mode_idx]
-                raman_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
-                # mulitiply in fourier space for convolution
-                @. raman_term = raman_term * raman_response[:, mode_idx, structure_idx]
-                planned_fft! * raman_term # fourier transform back
-                du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2(view(du, :, mode_idx)) + frac_raman*raman_term)
+                if interacts_with_other_mode(structure_curr.modes[mode_idx])
+                    mode_pair_idx = get_paired_mode_idx(structure_curr, mode_idx)
+                    mode_pol = get_polarization(structure_curr.modes[mode_idx])
+                    mode_pair_pol = get_polarization(structure_curr.modes[mode_pair_idx])
+                    # mulitiply in fourier space for convolution
+                    raman_straight_contrib = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol]
+                    kerr_straight_contrib = electronic_tens[mode_pol, mode_pol, mode_pol, mode_pol]
+                    raman_cross_contrib = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
+                    kerr_cross_contrib = electronic_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
+                    raman_straight_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
+                    raman_cross_term = planned_ifft! * copy(conj.(du[:, mode_pair_idx]).*(du[:, mode_idx])) # prepare intensity for convolution
+                    @. raman_term = raman_term * raman_response[:, mode_idx, structure_idx]
+                    planned_fft! * raman_term # fourier transform back
+                    du[:, mode_idx] .= (view(du, :, mode_idx) .* (kerr_straight_contrib*abs2(view(du, :, mode_idx)) + raman_straight_contrib*raman_straight_term)
+                                        + view(du, :, mode_pair_idx) .* (kerr_cross_contrib*conj(view(du, :, mode_pair_idx)).*(view(du, :, mode_idx)) + kerr_straight_contrib*raman_cross_term))
+                else
+                    raman_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
+                    # mulitiply in fourier space for convolution
+                    @. raman_term = raman_term * raman_response[:, mode_idx, structure_idx]
+                    planned_fft! * raman_term # fourier transform back
+                    du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2(view(du, :, mode_idx)) + frac_raman*raman_term)
+                end
             else
                 du[:, mode_idx] .= view(du, :, mode_idx) .* abs2.(view(du, :, mode_idx))
             end

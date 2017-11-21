@@ -70,15 +70,22 @@ mutable struct Mode <: AbstractMode
     linearloss::OpticalAttr
     corefraction::OpticalAttr
     coupling::OpticalAttr
+    polarization::Symbol
     has_shock::Bool
     has_raman::Bool
+    has_interaction::Bool
 end
 Mode(n_eff, area_eff) = Mode(n_eff, area_eff,
                              OpticalAttr(0.0, "Linear Loss"),
                              OpticalAttr(1.0, "Core Fraction"),
                              OpticalAttr(1.0, "Coupling"),
+                             :TM,
                              false,
-                             false)
+                             false,
+                             false,
+                             )
+Mode(n_eff, area_eff, lin_loss, corefrac, coupling, pol, shock, raman) = Mode(
+     n_eff, area_eff, lin_loss, corefrac, coupling, pol, shock, raman, false)
 
 struct ToyMode <: AbstractMode
     beta::Vector{OpticalAttr}
@@ -99,8 +106,11 @@ mutable struct Waveguide{T} <: AbstractStructure
     orientation::Int
     material::AbstractMaterial
     modes::Vector{AbstractMode}
+    interactions::Dict{Int, Int}
 end
-Waveguide(l, orient, mat) = Waveguide{typeof(l)}(l, orient, mat, AbstractMode[])
+Waveguide(l, orient, mat) = Waveguide{typeof(l)}(l, orient, mat,
+                                                 AbstractMode[],
+                                                 Dict{Int, Int}())
 
 abstract type AbstractResonator <: AbstractStructure end
 mutable struct CircularResonator{T} <: AbstractResonator
