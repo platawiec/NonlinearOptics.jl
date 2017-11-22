@@ -83,11 +83,12 @@ end
 num_structures(m::Model) = length(m.structure)
 num_modes(m::Model) = length(m.structure[1].modes)
 
-function get_structure_idx(structures, z)
-    structure_pos = cumsum(pathlength.(structures))
+function get_structure_idx(m::Model, z)
+    structure_pos = cumsum(pathlength.(m.structure))
     idx = count(i->(z>i), structure_pos)+1
     return idx
 end
+get_structure_idx(m::ToyModel, z) = 1
 # placeholder for now
 function get_orientation(structure, z)
     return Vec{3}((1, 0, 0)), π/4

@@ -42,12 +42,14 @@ module NonlinearOptics
     export OpticalAttr
     export Mode
     export CircularResonator, RacetrackResonator, Waveguide
+    export PulsedLaser, CWLaser
     export frequency, wavelength, getω, get_beta, get_FSR, get_groupindex,
            get_property, get_label
-    export add_mode!
-    export ToyModel
+    export add_mode!, add_interaction!
+    export Model, ToyModel
     export DynamicNLSE, DynamicLL, DynamicIkeda,
            SteadyStateNLSE, SteadyStateLL, SteadyStateIkeda
     export FT
+    export Glass, Silicon, Diamond
 
 end # module

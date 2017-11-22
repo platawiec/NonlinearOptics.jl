@@ -20,6 +20,7 @@ function build_problem(model, probtype::DynamicNLSE;
     )
     prob_exp = DynamicNLSEProblem(
         prob,
+        model,
         fftshift(ω),
         ω0,
         tmesh,
@@ -49,6 +50,7 @@ function build_problem(model, probtype::DynamicIkeda;
                       zspan;
                       kwargs...)
     prob_exp = DynamicIkedaProblem(prob,
+                                   model,
                                    fftshift(ω),
                                    ω0,
                                    tmesh,
@@ -82,7 +84,7 @@ function build_problem(model::ToyModel, ::DynamicLL;
     f, D, planned_fft!, planned_ifft! = build_GLLE(model, ω, tmesh)
 
     prob = ODEProblem(f, planned_ifft! * u0, τspan; kwargs...)
-    prob_LL = DynamicLLProblem(prob, fftshift(ω), ω0, tmesh, planned_fft!, planned_ifft!, D)
+    prob_LL = DynamicLLProblem(prob, model, fftshift(ω), ω0, tmesh, planned_fft!, planned_ifft!, D)
 end
 
 function build_GNLSE(model::ToyModel, ω, tmesh)
@@ -140,7 +142,7 @@ function build_GNLSE(model::Model, ω, tmesh)
 
     const num_mode = num_modes(model)
     function f(z, u, du)
-        structure_idx = get_structure_idx(model.structure, z)
+        structure_idx = get_structure_idx(model, z)
         structure_curr = model.structure[structure_idx]
         raman_tens = raman_tensor(structure_curr, z)
         electronic_tens = electronic_tensor(structure_curr, z)
@@ -159,22 +161,24 @@ function build_GNLSE(model::Model, ω, tmesh)
                     kerr_cross_contrib = electronic_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
                     raman_straight_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
                     raman_cross_term = planned_ifft! * copy(conj.(du[:, mode_pair_idx]).*(du[:, mode_idx])) # prepare intensity for convolution
-                    @. raman_term = raman_term * raman_response[:, mode_idx, structure_idx]
-                    planned_fft! * raman_term # fourier transform back
-                    du[:, mode_idx] .= (view(du, :, mode_idx) .* (kerr_straight_contrib*abs2(view(du, :, mode_idx)) + raman_straight_contrib*raman_straight_term)
-                                        + view(du, :, mode_pair_idx) .* (kerr_cross_contrib*conj(view(du, :, mode_pair_idx)).*(view(du, :, mode_idx)) + kerr_straight_contrib*raman_cross_term))
+                    @. raman_straight_term = raman_straight_term * raman_response[:, mode_idx, structure_idx]
+                    planned_fft! * raman_straight_term # fourier transform back
+                    @. raman_cross_term = raman_cross_term * raman_response[:, mode_idx, structure_idx]
+                    planned_fft! * raman_cross_term # fourier transform back
+                    du[:, mode_idx] .= (view(du, :, mode_idx) .* (kerr_straight_contrib*abs2.(view(du, :, mode_idx)) + raman_straight_contrib.*raman_straight_term)
+                                        + view(du, :, mode_pair_idx) .* (kerr_cross_contrib.*conj.(view(du, :, mode_pair_idx)).*(view(du, :, mode_idx)) + raman_cross_contrib.*raman_cross_term))
                 else
                     raman_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
                     # mulitiply in fourier space for convolution
                     @. raman_term = raman_term * raman_response[:, mode_idx, structure_idx]
                     planned_fft! * raman_term # fourier transform back
-                    du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2(view(du, :, mode_idx)) + frac_raman*raman_term)
+                    du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2.(view(du, :, mode_idx)) + frac_raman*raman_term)
                 end
             else
                 du[:, mode_idx] .= view(du, :, mode_idx) .* abs2.(view(du, :, mode_idx))
             end
             planned_ifft! * view(du, :, mode_idx)
-            du[:, mode_idx] .= 1im * view(γnl, :, mode_idx, structure_idx) .* view(shock_term, :, mode_idx, structure_idx) .* view(du, :, mode_idx) .* exp(-view(D, mode_idx, structure_idx) * z)
+            du[:, mode_idx] .= 1im * view(γnl, :, mode_idx, structure_idx) .* view(shock_term, :, mode_idx, structure_idx) .* view(du, :, mode_idx) .* exp.(-view(D, mode_idx, structure_idx) * z)
         end
     end
     return f, D, planned_fft!, planned_ifft!

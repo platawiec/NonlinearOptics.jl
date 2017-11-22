@@ -14,6 +14,7 @@ struct SteadyStateIkeda <: AbstractSteadyStateExperiment end
 abstract type AbstractNLOProblem end
 mutable struct DynamicNLSEProblem{fType, f0Type, fftType, ifftType, meshType, opType} <: AbstractNLOProblem
     prob::ODEProblem
+    model::AbstractModel
     ω::fType
     ω0::f0Type
     tmesh::meshType
@@ -23,6 +24,7 @@ mutable struct DynamicNLSEProblem{fType, f0Type, fftType, ifftType, meshType, op
 end
 mutable struct DynamicLLProblem{fType, f0Type, fftType, ifftType, meshType, opType} <: AbstractNLOProblem
     prob::ODEProblem
+    model::AbstractModel
     ω::fType
     ω0::f0Type
     tmesh::meshType
@@ -32,6 +34,7 @@ mutable struct DynamicLLProblem{fType, f0Type, fftType, ifftType, meshType, opTy
 end
 mutable struct DynamicIkedaProblem{fType, f0Type, fftType, ifftType, meshType, opType, cbType} <: AbstractNLOProblem
     prob::ODEProblem
+    model::AbstractModel
     ω::fType
     ω0::f0Type
     tmesh::meshType
@@ -48,12 +51,14 @@ mutable struct DynamicNLOSolution <: AbstractNLOSolution
 end
 
 # calling solution returns time-domain solution
-function (sol::DynamicNLOSolution)(z)
-    sol.prob.planned_fft * (sol.sol(z).*exp(sol.prob.Doperator * z))
+function (sol::DynamicNLOSolution)(z, mode_idx::Int=1)
+    structure_idx = get_structure_idx(sol.prob.model, z)
+    return sol.prob.planned_fft * (view(sol.sol(z), :, mode_idx, structure_idx).*exp.(view(sol.prob.Doperator, :, mode_idx, structure_idx) * z))
 end
-function FT(sol::DynamicNLOSolution, z)
+function FT(sol::DynamicNLOSolution, z, mode_idx::Int=1)
     dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
-    fftshift(sol.sol(z).*exp(sol.prob.Doperator * z)) / dt
+    structure_idx = get_structure_idx(sol.prob.model, z)
+    return fftshift(view(sol.sol(z), :, mode_idx, structure_idx) .* exp.(view(sol.prob.Doperator, :, mode_idx, structure_idx) * z)) / dt
 end
 
 ##Abstract interfacei forwards to DiffEq sol field

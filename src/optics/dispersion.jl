@@ -33,11 +33,18 @@ function get_beta(mode::ToyMode, source, numorders::Int)
     return β[1:(numorders+1)]
 end
 
+"""
+    get_stationarydispersion(mode, source)
+
+    Returns the stationary dispersion of the mode at the frequency defined by
+    source. This dispersion is centered around ω=0 and has no constant or
+    linear component - it is the dispersion in the moving frame.
+"""
 function get_stationarydispersion(mode, source)
-    source_ω = getω(source)
-    beta = get_beta(mode, source)
-    beta_linear = get_beta(mode, source, 1)
-    return ω->(beta(ω) - beta_linear[1] - beta_linear[2] * source_ω)
+    const source_ω = getω(source)
+    const beta = get_beta(mode, source)
+    const beta_linear = get_beta(mode, source, 1)
+    return ω->(beta(source_ω - ω) - beta_linear[1] + beta_linear[2] * ω)
 end
 
 function get_dispersionfrombeta(beta_coeff)

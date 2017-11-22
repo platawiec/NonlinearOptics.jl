@@ -4,7 +4,7 @@ neff_data = collect(linspace(3.0, 1.0, 250))
 neff = OpticalAttr(freq, neff_data, "n_eff")
 corefrac = OpticalAttr(1.0, "Core Fraction")
 Aeff = OpticalAttr(1e-12, "Aeff (m²)")
-loss = OpticalAttr(1e-3, "Loss (1/m)")
+loss = OpticalAttr(0.0, "Loss (1/m)")
 coupling = OpticalAttr(0.6, "Coupling")
 
 mode_TM = Mode(neff, Aeff, loss, corefrac, coupling, :TM, true, true)
