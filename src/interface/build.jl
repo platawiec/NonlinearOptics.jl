@@ -4,10 +4,12 @@ function build_problem(model, probtype::DynamicNLSE;
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
     zspan = (0.0, pathlength(model))
 
-    ω = get_ωmesh(tmesh)
+    ω_zeroed = get_ωmesh(tmesh)
     const dt_mesh = tmesh[2]-tmesh[1]
-    const ω = fftshift(ω)
+    ω_zeroed = fftshift(ω_zeroed)
+
     const ω0 = get_ω0(model)
+    const ω = ω_zeroed + ω0
     u0 = derive_pulse(model, tmesh)
 
     f, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
@@ -15,8 +17,7 @@ function build_problem(model, probtype::DynamicNLSE;
     prob = ODEProblem(
         f,
         u0,
-        zspan;
-        kwargs...
+        zspan
     )
     prob_exp = DynamicNLSEProblem(
         prob,
@@ -37,18 +38,19 @@ function build_problem(model, probtype::DynamicIkeda;
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
     zspan = (0.0, pathlength(model))
 
-    ω = get_ωmesh(tmesh)
+    ω_zeroed = get_ωmesh(tmesh)
     const dt_mesh = tmesh[2]-tmesh[1]
-    const ω = fftshift(ω)
+    ω_zeroed = fftshift(ω_zeroed)
     const ω0 = model.ω0
+    const ω = ω0 + ω_zeroed
+
     u0 = derive_pulse(model, tmesh)
 
     f, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
     ikeda_callback = build_ikedacallback(model)
     prob = ODEProblem(f,
                       planned_ifft! * u0,
-                      zspan;
-                      kwargs...)
+                      zspan)
     prob_exp = DynamicIkedaProblem(prob,
                                    model,
                                    fftshift(ω),
@@ -77,6 +79,7 @@ function build_problem(model::ToyModel, ::DynamicLL;
     ω = get_ωmesh(tmesh)
     ω = fftshift(ω)
     ω0 = 0.0#toy model ω0 is 0
+    ω .+= ω0
 
     #TODO: random start conditions don't seem to do anything
     u0 = derive_pulse(model.power_in, model.pulsetime).(tmesh)
@@ -100,7 +103,7 @@ function build_GNLSE(model::ToyModel, ω, tmesh)
     const use_raman = has_raman(model)
 
     const shock_term = build_model_shock(model, ω)
-    const raman_response = build_model_raman(model, tmesh)
+    const (raman_response, raman_noise) = build_model_raman(model, tmesh, ω)
 
     const frac_raman = 0.18
 
@@ -135,7 +138,7 @@ function build_GNLSE(model::Model, ω, tmesh)
     const use_raman = has_raman(model)
 
     const shock_term = build_model_shock(model, ω)
-    const raman_response = build_model_raman(model, tmesh)
+    const (raman_response, raman_noise) = build_model_raman(model, tmesh, ω)
 
     #TODO: generalize
     const frac_raman = 0.18
@@ -159,20 +162,21 @@ function build_GNLSE(model::Model, ω, tmesh)
                     kerr_straight_contrib = electronic_tens[mode_pol, mode_pol, mode_pol, mode_pol]
                     raman_cross_contrib = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
                     kerr_cross_contrib = electronic_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
-                    raman_straight_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
-                    raman_cross_term = planned_ifft! * copy(conj.(du[:, mode_pair_idx]).*(du[:, mode_idx])) # prepare intensity for convolution
+                    raman_straight_term = planned_ifft! * abs2.(du[:, mode_idx]) # prepare intensity for convolution - note that this allocates, so we don't call copy()
+                    raman_cross_term = planned_ifft! * conj.(du[:, mode_pair_idx]).*(du[:, mode_idx]) # prepare intensity for convolution
                     @. raman_straight_term = raman_straight_term * raman_response[:, mode_idx, structure_idx]
                     planned_fft! * raman_straight_term # fourier transform back
                     @. raman_cross_term = raman_cross_term * raman_response[:, mode_idx, structure_idx]
                     planned_fft! * raman_cross_term # fourier transform back
-                    du[:, mode_idx] .= (view(du, :, mode_idx) .* (kerr_straight_contrib*abs2.(view(du, :, mode_idx)) + raman_straight_contrib.*raman_straight_term)
-                                        + view(du, :, mode_pair_idx) .* (kerr_cross_contrib.*conj.(view(du, :, mode_pair_idx)).*(view(du, :, mode_idx)) + raman_cross_contrib.*raman_cross_term))
+                    raman_noise_term = view(raman_noise, :, mode_idx, structure_idx).*randn(Base.size(ω))./view(γnl, :, mode_idx, structure_idx)
+                    du[:, mode_idx] .= (view(du, :, mode_idx) .* (kerr_straight_contrib*abs2.(view(du, :, mode_idx)) + raman_straight_contrib.*(raman_straight_term .+ raman_noise_term))
+                                        + view(du, :, mode_pair_idx) .* (kerr_cross_contrib.*conj.(view(du, :, mode_pair_idx)).*(view(du, :, mode_idx)) .+ raman_cross_contrib.*(raman_cross_term .+ raman_noise_term)))
                 else
                     raman_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
                     # mulitiply in fourier space for convolution
                     @. raman_term = raman_term * raman_response[:, mode_idx, structure_idx]
                     planned_fft! * raman_term # fourier transform back
-                    du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2.(view(du, :, mode_idx)) + frac_raman*raman_term)
+                    du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2.(view(du, :, mode_idx)) + frac_raman*(raman_term + raman_noise[:, mode_idx, structure_idx].*randn(Base.size(ω))./view(γnl, :, mode_idx, structure_idx)))
                 end
             else
                 du[:, mode_idx] .= view(du, :, mode_idx) .* abs2.(view(du, :, mode_idx))
@@ -199,7 +203,7 @@ function build_GLLE(model, ω, tmesh)
 
     const shock_term = build_model_shock(model, ω)
     const frac_raman = 0.18
-    const raman_response = build_model_raman(model, tmesh)
+    const (raman_response, raman_noise) = build_model_raman(model, tmesh, ω)
 
     const planned_fft! = plan_fft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
     const planned_ifft! = plan_ifft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
@@ -243,7 +247,7 @@ end
 function build_model_shock(model::ToyModel, ω)
     ω0 = model.ω0
     if model.has_shock
-        shock_term = (ω + ω0)/ω0
+        shock_term = one(ω0)+ ω/ω0
     else
         shock_term = one(ω0)
     end
@@ -256,24 +260,33 @@ function build_model_shock(model::Model, ω)
     for (i, structure) in enumerate(model.structure)
         for (j, mode) in enumerate(structure.modes)
             if mode.has_shock
-                shock_term[:, j, i] = (ω + ω0)/ω0
+                shock_term[:, j, i] .+= ω/ω0
             end
         end
     end
     return shock_term
 end
 
-function build_model_raman(model::ToyModel, tmesh)
+"""
+    build_model_raman(model, tmesh, ω) -> (raman_response, raman_noise)
+
+    Given a model and time points (tmesh), returns the calculated raman
+    response for the material and its raman noise. Raman noise is diagonal
+    in frequency space.
+"""
+function build_model_raman(model::ToyModel, tmesh, ω)
     raman_response = (1+0im)*similar(tmesh)
     if model.has_raman
         tau1 = 0.0122; tau2 = 0.032
         raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
         raman_response = length(tmesh)*ifft(fftshift(raman_timeresponse))
     end
-    return raman_response
+    return raman_response, zero(raman_response)
 end
-function build_model_raman(model::Model, tmesh)
+function build_model_raman(model::Model, tmesh, ω)
     raman_response = zeros(eltype((1+0im)*tmesh), length(tmesh), num_modes(model), num_structures(model))
+    raman_noise = zero(raman_response)
+    ω0 = get_ω0(model)
     for (i, structure) in enumerate(model.structure)
         for (j, mode) in enumerate(structure.modes)
             if mode.has_raman
@@ -281,8 +294,10 @@ function build_model_raman(model::Model, tmesh)
                 tau2 = structure.material.raman.tau2
                 raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
                 raman_response[:, j ,i] = length(tmesh)*ifft(fftshift(raman_timeresponse))
+                raman_noise[:, j, i] = 2 * ħ * ω0 * imag.(view(raman_response, :, j, i)) .* (bose_distribution.(abs.(ω-ω0)) .+ (ω .< ω0))
             end
         end
     end
-    return raman_response
+    return raman_response, raman_noise
 end
+@inline bose_distribution(Ω) = one(Ω) / (exp(ħ_over_kBT * Ω) - 1)

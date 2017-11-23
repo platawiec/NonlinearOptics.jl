@@ -44,7 +44,7 @@ function get_stationarydispersion(mode, source)
     const source_ω = getω(source)
     const beta = get_beta(mode, source)
     const beta_linear = get_beta(mode, source, 1)
-    return ω->(beta(source_ω - ω) - beta_linear[1] + beta_linear[2] * ω)
+    return ω->(beta(ω) - beta_linear[1] - beta_linear[2] * (ω - source_ω))
 end
 
 function get_dispersionfrombeta(beta_coeff)

@@ -46,7 +46,7 @@ function nonlinearcoeff(model::Model, ω)
     for (i, structure) in enumerate(model.structure)
         nl_n = structure.material.nonlinearindex
         for (j, mode) in enumerate(structure.modes)
-            nlcoeff[:, j, i] = nl_n * mode.corefraction.(ω) ./ mode.effectivearea.(ω)
+            nlcoeff[:, j, i] = ω .* nl_n .* mode.corefraction.(ω) ./ mode.effectivearea.(ω) / c
         end
     end
     return nlcoeff
@@ -55,15 +55,14 @@ end
 function stationarydispersion(model::ToyModel, ω)
     beta = model.betacoeff
     betas = beta .* [1/factorial(n) for n=0:(length(beta)-1)]
-    dispersion = Poly(betas).(ω)
+    dispersion = Poly(betas).(ω - model.ω0)
     return dispersion
 end
 function stationarydispersion(model::Model, ω)
-    #TODO: finish
-    dispersion = zeros(ω)
-    for structure in model.structure
-        for mode in structure.modes
-            dispersion = get_stationarydispersion(mode, model.laser).(ω)
+    dispersion = zeros(eltype(ω), length(ω), num_modes(model), num_structures(model))
+    for (i, structure) in enumerate(model.structure)
+        for (j, mode) in enumerate(structure.modes)
+            dispersion[:, j, i] = get_stationarydispersion(mode, model.laser).(ω)
         end
     end
     return dispersion

@@ -18,7 +18,5 @@ dudley = ToyModel(;ω0=ω0, betacoeff=betacoeff,
                    has_shock=true,
                    has_raman=true)
 
-prob_dudley = build_problem(dudley, DynamicNLSE();
-                            tpoints=2^13, time_window=12.5)
-sol_dudley = solve(prob_dudley)
+sol_dudley = solve(dudley, DynamicNLSE(); tpoints=2^13, time_window=12.5)
 # solves in 1.3 seconds, compared to 27 seconds for scgbook code!
