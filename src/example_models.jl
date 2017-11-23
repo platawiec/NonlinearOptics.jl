@@ -17,7 +17,7 @@ add_mode!(wg_simple, mode_TE)
 add_interaction!(wg_simple, mode_TM, mode_TE)
 # Note: pulse width is in 1/THz = fs
 source_simple = PulsedLaser(Frequency(200), 1000.0, 0.020)
-model_NLSE = Model(source_simple, [wg_simple, wg_simple])
+model_NLSE = Model(source_simple, [wg_simple])
 # Laser answers: δ₀ can change during experiment, ω₀, and Ein? All can be
 # parameters of cw laser. Solver ?s: How many dispersive orders
 # should we use (keyword, default=3)? Initial conditions for NLSE? How do we
@@ -29,7 +29,7 @@ add_mode!(res_simple, mode)
 source_CW = CWLaser(Frequency(200), 0.05, 1.0)
 model_LL = Model(source_CW, [res_simple, res_simple])
 
-sol_NLSE = solve(model_NLSE, DynamicNLSE())
+sol_NLSE = solve(model_NLSE, DynamicNLSE(); tpoints=2^13)
 
 R = CubicRamanTensor()
 ETensor = CubicElectronicTensor(0.1)

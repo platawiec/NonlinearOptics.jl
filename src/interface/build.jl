@@ -150,6 +150,7 @@ function build_GNLSE(model::Model, ω, tmesh)
         raman_tens = raman_tensor(structure_curr, z)
         electronic_tens = electronic_tensor(structure_curr, z)
         for mode_idx in 1:num_mode
+            raman_noise_term = raman_noise[:, mode_idx, structure_idx]
             du[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z)
             planned_fft! * view(du, :, mode_idx)
             if use_raman[mode_idx]
@@ -168,21 +169,22 @@ function build_GNLSE(model::Model, ω, tmesh)
                     planned_fft! * raman_straight_term # fourier transform back
                     @. raman_cross_term = raman_cross_term * raman_response[:, mode_idx, structure_idx]
                     planned_fft! * raman_cross_term # fourier transform back
-                    raman_noise_term = view(raman_noise, :, mode_idx, structure_idx).*randn(Base.size(ω))./view(γnl, :, mode_idx, structure_idx)
-                    du[:, mode_idx] .= (view(du, :, mode_idx) .* (kerr_straight_contrib*abs2.(view(du, :, mode_idx)) + raman_straight_contrib.*(raman_straight_term .+ raman_noise_term))
-                                        + view(du, :, mode_pair_idx) .* (kerr_cross_contrib.*conj.(view(du, :, mode_pair_idx)).*(view(du, :, mode_idx)) .+ raman_cross_contrib.*(raman_cross_term .+ raman_noise_term)))
+                    raman_noise_term .*= randn(Base.size(ω)).*(planned_ifft! * du[:, mode_idx]) * raman_straight_contrib .+ randn(Base.size(ω)).*((planned_ifft! * du[:, mode_pair_idx]) * raman_cross_contrib)
+                    du[:, mode_idx] .= (view(du, :, mode_idx) .* (kerr_straight_contrib*abs2.(view(du, :, mode_idx)) + raman_straight_contrib.*raman_straight_term)
+                                        + view(du, :, mode_pair_idx) .* (kerr_cross_contrib.*conj.(view(du, :, mode_pair_idx)).*(view(du, :, mode_idx)) .+ raman_cross_contrib.*raman_cross_term))
                 else
                     raman_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
                     # mulitiply in fourier space for convolution
                     @. raman_term = raman_term * raman_response[:, mode_idx, structure_idx]
                     planned_fft! * raman_term # fourier transform back
-                    du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2.(view(du, :, mode_idx)) + frac_raman*(raman_term + raman_noise[:, mode_idx, structure_idx].*randn(Base.size(ω))./view(γnl, :, mode_idx, structure_idx)))
+                    raman_noise_term .*= (planned_ifft! * du[:, mode_idx]) .* randn(Base.size(ω)).*frac_raman
+                    du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2.(view(du, :, mode_idx)) + frac_raman*(raman_term))
                 end
             else
                 du[:, mode_idx] .= view(du, :, mode_idx) .* abs2.(view(du, :, mode_idx))
             end
             planned_ifft! * view(du, :, mode_idx)
-            du[:, mode_idx] .= 1im * view(γnl, :, mode_idx, structure_idx) .* view(shock_term, :, mode_idx, structure_idx) .* view(du, :, mode_idx) .* exp.(-view(D, mode_idx, structure_idx) * z)
+            du[:, mode_idx] .= view(shock_term, :, mode_idx, structure_idx) .* (1im * view(γnl, :, mode_idx, structure_idx) .* view(du, :, mode_idx) .- raman_noise_term) .* exp.(-view(D, :, mode_idx, structure_idx) * z)
         end
     end
     return f, D, planned_fft!, planned_ifft!
@@ -294,7 +296,7 @@ function build_model_raman(model::Model, tmesh, ω)
                 tau2 = structure.material.raman.tau2
                 raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
                 raman_response[:, j ,i] = length(tmesh)*ifft(fftshift(raman_timeresponse))
-                raman_noise[:, j, i] = 2 * ħ * ω0 * imag.(view(raman_response, :, j, i)) .* (bose_distribution.(abs.(ω-ω0)) .+ (ω .< ω0))
+                raman_noise[:, j, i] = 2 * ħ * ω0 * imag.(view(raman_response, :, j, i)) .* (bose_distribution.(abs.(ω-ω0)+ω[2]-ω[1]) .+ (ω .< ω0))
             end
         end
     end
