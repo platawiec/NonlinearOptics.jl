@@ -1,7 +1,7 @@
 #TODO: currently placeholders
-const Diamond = Crystal(1.3e-19, 1.0, 1.0)
-const Silicon = Crystal(3e-18, 1.0, 1.0)
-const SiO2 = Glass(2.7e-20, 1.0, 1.0)
+const Diamond = Crystal(1.3e-19, 0.004, 5.7)
+const Silicon = Crystal(3e-18, 0.01, 3.0)
+const SiO2 = Glass(2.7e-20, 0.0122, 0.032)
 
 """
     CubicRamanTensor() -> Tensor{4, 3}
@@ -17,10 +17,11 @@ function CubicRamanTensor()
 end
 
 """
-    CubicElectronicTensor() -> Tensor{4, 3}
+    CubicElectronicTensor(ρ) -> Tensor{4, 3}
 
     Returns a dimensionless tensor describing the electronic
-    contribution for cubic crystals
+    contribution for cubic crystals. ρ characterizes the nonlinear
+    anisotropy ρ ≡ 3χ₁₁₂₂/χ₁₁₁₁
 """
 function CubicElectronicTensor(ρ)
     δ = (i, j) -> i == j ? 1 : 0

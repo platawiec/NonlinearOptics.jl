@@ -22,9 +22,7 @@ struct RamanTensor{T, T1, T2} <: AbstractRamanResponse
 end
 
 abstract type AbstractDielectric end
-struct DielectricCoefficient{T} <: AbstractDielectric
-    ϵ::T
-end
+struct DielectricCoefficient <: AbstractDielectric end
 struct DielectricTensor <: AbstractDielectric end
 
 struct Glass{T} <: AbstractMaterial
@@ -37,8 +35,8 @@ struct Crystal{T} <: AbstractMaterial
     raman::RamanTensor
     ϵ::DielectricTensor
 end
-Glass(nl_index, r, ϵ) = Glass{typeof(nl_index)}(nl_index, RamanCoefficient(r, 0.1, 0.1), DielectricCoefficient(ϵ))
-Crystal(nl_index, r, ϵ) = Crystal{typeof(nl_index)}(nl_index, RamanTensor(1.0, 0.1, 0.1), DielectricTensor())
+Glass(nl_index, tau1, tau2) = Glass{typeof(nl_index)}(nl_index, RamanCoefficient(1.0, tau1, tau2), DielectricCoefficient())
+Crystal(nl_index, tau1, tau2) = Crystal{typeof(nl_index)}(nl_index, RamanTensor(1.0, tau1, tau2), DielectricTensor())
 
 abstract type AbstractOpticalAttr end
 

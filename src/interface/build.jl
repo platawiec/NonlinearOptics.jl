@@ -111,7 +111,7 @@ function build_GNLSE(model::ToyModel, ω, tmesh)
         @. du = u * exp(D * z)
         planned_fft! * du
         if use_raman
-            raman_term = planned_ifft! * copy(abs2.(du)) # prepare intensity for convolution
+            raman_term = planned_ifft! * abs2.(du) # prepare intensity for convolution
             # mulitiply in fourier space for convolution
             @. raman_term = raman_term * raman_response
             planned_fft! * raman_term # fourier transform back
@@ -145,46 +145,62 @@ function build_GNLSE(model::Model, ω, tmesh)
 
     const num_mode = num_modes(model)
     function f(z, u, du)
-        structure_idx = get_structure_idx(model, z)
-        structure_curr = model.structure[structure_idx]
-        raman_tens = raman_tensor(structure_curr, z)
+        structure_idx   = get_structure_idx(model, z)
+        structure_curr  = model.structure[structure_idx]
+        raman_tens      = raman_tensor(structure_curr, z)
         electronic_tens = electronic_tensor(structure_curr, z)
+        # First we change out of the interaction picture, turning all of our modes
+        # from an interaction picture fourier-domain represenation to a time-domain
+        # representation
+        ut = zero(du)
         for mode_idx in 1:num_mode
-            raman_noise_term = raman_noise[:, mode_idx, structure_idx]
-            du[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z)
-            planned_fft! * view(du, :, mode_idx)
+            ut[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z)
+            planned_fft! * view(ut, :, mode_idx)
+        end
+        # Now we handle interactions between the modes in the time domain. Every
+        # time du shows up, we are looking at the time-domain representaiton prepared
+        # previously
+        for mode_idx in 1:num_mode
             if use_raman[mode_idx]
+                # We construct the raman noise, which is diagonal in the
+                # frequency domain but multiplicative in our diff eq in the time domain
+                raman_noise_term = fftshift(planned_fft! * (raman_noise[:, mode_idx, structure_idx] .* randn(Base.size(ω))))
                 if interacts_with_other_mode(structure_curr.modes[mode_idx])
-                    mode_pair_idx = get_paired_mode_idx(structure_curr, mode_idx)
-                    mode_pol = get_polarization(structure_curr.modes[mode_idx])
-                    mode_pair_pol = get_polarization(structure_curr.modes[mode_pair_idx])
+                    mode_pair_idx           = get_paired_mode_idx(structure_curr, mode_idx)
+                    mode_pol                = get_polarization(structure_curr.modes[mode_idx])
+                    mode_pair_pol           = get_polarization(structure_curr.modes[mode_pair_idx])
                     # mulitiply in fourier space for convolution
-                    raman_straight_contrib = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol]
-                    kerr_straight_contrib = electronic_tens[mode_pol, mode_pol, mode_pol, mode_pol]
-                    raman_cross_contrib = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
-                    kerr_cross_contrib = electronic_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
-                    raman_straight_term = planned_ifft! * abs2.(du[:, mode_idx]) # prepare intensity for convolution - note that this allocates, so we don't call copy()
-                    raman_cross_term = planned_ifft! * conj.(du[:, mode_pair_idx]).*(du[:, mode_idx]) # prepare intensity for convolution
-                    @. raman_straight_term = raman_straight_term * raman_response[:, mode_idx, structure_idx]
+                    raman_straight_contrib  = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol]
+                    kerr_straight_contrib   = electronic_tens[mode_pol, mode_pol, mode_pol, mode_pol]
+                    raman_cross_contrib     = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
+                    kerr_cross_contrib      = electronic_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
+                    raman_straight_term     = planned_ifft! * abs2.(ut[:, mode_idx]) # prepare intensity for convolution - note that this allocates, so we don't call copy()
+                    raman_cross_term        = planned_ifft! * (conj.(ut[:, mode_pair_idx]).*(ut[:, mode_idx])) # prepare intensity for convolution
+                    raman_straight_term    .= raman_straight_term .* view(raman_response, :, mode_idx, structure_idx)
                     planned_fft! * raman_straight_term # fourier transform back
-                    @. raman_cross_term = raman_cross_term * raman_response[:, mode_idx, structure_idx]
+                    raman_cross_term       .= raman_cross_term .* view(raman_response, :, mode_idx, structure_idx)
                     planned_fft! * raman_cross_term # fourier transform back
-                    raman_noise_term .*= randn(Base.size(ω)).*(planned_ifft! * du[:, mode_idx]) * raman_straight_contrib .+ randn(Base.size(ω)).*((planned_ifft! * du[:, mode_pair_idx]) * raman_cross_contrib)
-                    du[:, mode_idx] .= (view(du, :, mode_idx) .* (kerr_straight_contrib*abs2.(view(du, :, mode_idx)) + raman_straight_contrib.*raman_straight_term)
-                                        + view(du, :, mode_pair_idx) .* (kerr_cross_contrib.*conj.(view(du, :, mode_pair_idx)).*(view(du, :, mode_idx)) .+ raman_cross_contrib.*raman_cross_term))
+                    # Raman noise is multiplicative in the time domain
+                    raman_noise_term      .*= view(ut, :, mode_idx) * raman_straight_contrib .+ view(ut, :, mode_pair_idx) * raman_cross_contrib
+                    du[:, mode_idx]        .= (view(ut, :, mode_idx) .* (kerr_straight_contrib*abs2.(view(ut, :, mode_idx)) + raman_straight_contrib.*raman_straight_term)
+                                             + view(ut, :, mode_pair_idx) .* (kerr_cross_contrib.*conj.(view(ut, :, mode_pair_idx)).*(view(ut, :, mode_idx)) .+ raman_cross_contrib.*raman_cross_term))
                 else
-                    raman_term = planned_ifft! * copy(abs2.(du[:, mode_idx])) # prepare intensity for convolution
+                    raman_term              = planned_ifft! * abs2.(ut[:, mode_idx]) # prepare intensity for convolution
                     # mulitiply in fourier space for convolution
-                    @. raman_term = raman_term * raman_response[:, mode_idx, structure_idx]
+                    @. raman_term           = raman_term * raman_response[:, mode_idx, structure_idx]
                     planned_fft! * raman_term # fourier transform back
-                    raman_noise_term .*= (planned_ifft! * du[:, mode_idx]) .* randn(Base.size(ω)).*frac_raman
-                    du[:, mode_idx] .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2.(view(du, :, mode_idx)) + frac_raman*(raman_term))
+                    raman_noise_term      .*= du[:, mode_idx] * frac_raman
+                    du[:, mode_idx]        .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2.(view(du, :, mode_idx)) + frac_raman*(raman_term))
                 end
             else
                 du[:, mode_idx] .= view(du, :, mode_idx) .* abs2.(view(du, :, mode_idx))
             end
             planned_ifft! * view(du, :, mode_idx)
-            du[:, mode_idx] .= view(shock_term, :, mode_idx, structure_idx) .* (1im * view(γnl, :, mode_idx, structure_idx) .* view(du, :, mode_idx) .- raman_noise_term) .* exp.(-view(D, :, mode_idx, structure_idx) * z)
+            du[:, mode_idx] .= (view(shock_term, :, mode_idx, structure_idx)
+                                  .* (1im * view(γnl, :, mode_idx, structure_idx) .* view(du, :, mode_idx)
+                                  .- (planned_ifft! * raman_noise_term))
+                                 .* exp.(-view(D, :, mode_idx, structure_idx) * z)
+                                )
         end
     end
     return f, D, planned_fft!, planned_ifft!
@@ -249,7 +265,7 @@ end
 function build_model_shock(model::ToyModel, ω)
     ω0 = model.ω0
     if model.has_shock
-        shock_term = one(ω0)+ ω/ω0
+        shock_term = one(ω0) + ω/ω0
     else
         shock_term = one(ω0)
     end
@@ -258,7 +274,7 @@ end
 
 function build_model_shock(model::Model, ω)
     const ω0 = getω(model.laser)
-    shock_term = ones(typeof(ω0), length(ω), num_modes(model), num_structures(model))
+    shock_term = fill(one(ω0), length(ω), num_modes(model), num_structures(model))
     for (i, structure) in enumerate(model.structure)
         for (j, mode) in enumerate(structure.modes)
             if mode.has_shock
@@ -274,14 +290,14 @@ end
 
     Given a model and time points (tmesh), returns the calculated raman
     response for the material and its raman noise. Raman noise is diagonal
-    in frequency space.
+    in frequency domain.
 """
 function build_model_raman(model::ToyModel, tmesh, ω)
     raman_response = (1+0im)*similar(tmesh)
     if model.has_raman
         tau1 = 0.0122; tau2 = 0.032
         raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
-        raman_response = length(tmesh)*ifft(fftshift(raman_timeresponse))
+        raman_response = ifft!(fftshift(raman_timeresponse))
     end
     return raman_response, zero(raman_response)
 end
@@ -295,8 +311,8 @@ function build_model_raman(model::Model, tmesh, ω)
                 tau1 = structure.material.raman.tau1
                 tau2 = structure.material.raman.tau2
                 raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
-                raman_response[:, j ,i] = length(tmesh)*ifft(fftshift(raman_timeresponse))
-                raman_noise[:, j, i] = 2 * ħ * ω0 * imag.(view(raman_response, :, j, i)) .* (bose_distribution.(abs.(ω-ω0)+ω[2]-ω[1]) .+ (ω .< ω0))
+                raman_response[:, j ,i] = ifft!(raman_timeresponse)
+                raman_noise[:, j, i] = 2 * ħ * ω0 * abs.(imag.(view(raman_response, :, j, i))) .* (bose_distribution.(abs.(ω-ω0)+ω[2]-ω[1]) .+ (ω .< ω0))
             end
         end
     end
