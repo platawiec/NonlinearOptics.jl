@@ -12,7 +12,7 @@ function build_problem(model, probtype::DynamicNLSE;
     const ω = ω_zeroed + ω0
     u0 = derive_pulse(model, tmesh)
 
-    f, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
+    f, g, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
     planned_ifft! * view(u0, :, 1)
     prob = ODEProblem(
         f,
@@ -20,6 +20,41 @@ function build_problem(model, probtype::DynamicNLSE;
         zspan
     )
     prob_exp = DynamicNLSEProblem(
+        prob,
+        model,
+        fftshift(ω),
+        ω0,
+        tmesh,
+        planned_fft!,
+        planned_ifft!,
+        D
+    )
+    return prob_exp
+end
+
+function build_problem(model, probtype::StochasticNLSE;
+                       tpoints=2^13, time_window=10.0, kwargs...)
+
+    tmesh = linspace(-time_window/2, time_window/2, tpoints)
+    zspan = (0.0, pathlength(model))
+
+    ω_zeroed = get_ωmesh(tmesh)
+    const dt_mesh = tmesh[2]-tmesh[1]
+    ω_zeroed = fftshift(ω_zeroed)
+
+    const ω0 = get_ω0(model)
+    const ω = ω_zeroed + ω0
+    u0 = derive_pulse(model, tmesh)
+
+    f, g, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
+    planned_ifft! * view(u0, :, 1)
+    prob = SDEProblem(
+        f,
+        g,
+        u0,
+        zspan
+    )
+    prob_exp = StochasticNLSEProblem(
         prob,
         model,
         fftshift(ω),
@@ -122,7 +157,8 @@ function build_GNLSE(model::ToyModel, ω, tmesh)
         planned_ifft! * du
         @. du = 1im * γnl * shock_term * du * exp(-D * z)
     end
-    return f, D, planned_fft!, planned_ifft!
+    function g(z, u, du2) end
+    return f, g, D, planned_fft!, planned_ifft!
 end
 
 function build_GNLSE(model::Model, ω, tmesh)
@@ -164,16 +200,16 @@ function build_GNLSE(model::Model, ω, tmesh)
             if use_raman[mode_idx]
                 # We construct the raman noise, which is diagonal in the
                 # frequency domain but multiplicative in our diff eq in the time domain
-                raman_noise_term = fftshift(planned_fft! * (raman_noise[:, mode_idx, structure_idx] .* randn(Base.size(ω))))
                 if interacts_with_other_mode(structure_curr.modes[mode_idx])
                     mode_pair_idx           = get_paired_mode_idx(structure_curr, mode_idx)
                     mode_pol                = get_polarization(structure_curr.modes[mode_idx])
                     mode_pair_pol           = get_polarization(structure_curr.modes[mode_pair_idx])
+                    overlap                 = structure_curr.overlap[(mode_idx, mode_pair_idx)]
                     # mulitiply in fourier space for convolution
-                    raman_straight_contrib  = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol]
-                    kerr_straight_contrib   = electronic_tens[mode_pol, mode_pol, mode_pol, mode_pol]
-                    raman_cross_contrib     = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
-                    kerr_cross_contrib      = electronic_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol]
+                    raman_straight_contrib  = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol] * overlap
+                    kerr_straight_contrib   = electronic_tens[mode_pol, mode_pol, mode_pol, mode_pol] * overlap
+                    raman_cross_contrib     = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol] * overlap
+                    kerr_cross_contrib      = electronic_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol] * overlap
                     raman_straight_term     = planned_ifft! * abs2.(ut[:, mode_idx]) # prepare intensity for convolution - note that this allocates, so we don't call copy()
                     raman_cross_term        = planned_ifft! * (conj.(ut[:, mode_pair_idx]).*(ut[:, mode_idx])) # prepare intensity for convolution
                     raman_straight_term    .= raman_straight_term .* view(raman_response, :, mode_idx, structure_idx)
@@ -181,7 +217,6 @@ function build_GNLSE(model::Model, ω, tmesh)
                     raman_cross_term       .= raman_cross_term .* view(raman_response, :, mode_idx, structure_idx)
                     planned_fft! * raman_cross_term # fourier transform back
                     # Raman noise is multiplicative in the time domain
-                    raman_noise_term      .*= view(ut, :, mode_idx) * raman_straight_contrib .+ view(ut, :, mode_pair_idx) * raman_cross_contrib
                     du[:, mode_idx]        .= (view(ut, :, mode_idx) .* (kerr_straight_contrib*abs2.(view(ut, :, mode_idx)) + raman_straight_contrib.*raman_straight_term)
                                              + view(ut, :, mode_pair_idx) .* (kerr_cross_contrib.*conj.(view(ut, :, mode_pair_idx)).*(view(ut, :, mode_idx)) .+ raman_cross_contrib.*raman_cross_term))
                 else
@@ -189,7 +224,6 @@ function build_GNLSE(model::Model, ω, tmesh)
                     # mulitiply in fourier space for convolution
                     @. raman_term           = raman_term * raman_response[:, mode_idx, structure_idx]
                     planned_fft! * raman_term # fourier transform back
-                    raman_noise_term      .*= du[:, mode_idx] * frac_raman
                     du[:, mode_idx]        .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2.(view(du, :, mode_idx)) + frac_raman*(raman_term))
                 end
             else
@@ -197,13 +231,56 @@ function build_GNLSE(model::Model, ω, tmesh)
             end
             planned_ifft! * view(du, :, mode_idx)
             du[:, mode_idx] .= (view(shock_term, :, mode_idx, structure_idx)
-                                  .* (1im * view(γnl, :, mode_idx, structure_idx) .* view(du, :, mode_idx)
-                                  .- (planned_ifft! * raman_noise_term))
+                                  .* (1im * view(γnl, :, mode_idx, structure_idx) .* view(du, :, mode_idx))
                                  .* exp.(-view(D, :, mode_idx, structure_idx) * z)
                                 )
         end
     end
-    return f, D, planned_fft!, planned_ifft!
+
+    function g(z, u, du2)
+        structure_idx   = get_structure_idx(model, z)
+        structure_curr  = model.structure[structure_idx]
+        raman_tens      = raman_tensor(structure_curr, z)
+        electronic_tens = electronic_tensor(structure_curr, z)
+        # First we change out of the interaction picture, turning all of our modes
+        # from an interaction picture fourier-domain represenation to a time-domain
+        # representation
+        ut = zero(du2)
+        for mode_idx in 1:num_mode
+            ut[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z)
+            planned_fft! * view(ut, :, mode_idx)
+        end
+        # Now we handle interactions between the modes in the time domain. Every
+        # time du shows up, we are looking at the time-domain representaiton prepared
+        # previously
+        for mode_idx in 1:num_mode
+            if use_raman[mode_idx]
+                # TODO: in-place raman noise
+                # We construct the raman noise, which is diagonal in the
+                # frequency domain but multiplicative in our diff eq in the time domain
+                raman_noise_term = fftshift(planned_fft! * (raman_noise[:, mode_idx, structure_idx]))
+                if interacts_with_other_mode(structure_curr.modes[mode_idx])
+                    mode_pair_idx           = get_paired_mode_idx(structure_curr, mode_idx)
+                    mode_pol                = get_polarization(structure_curr.modes[mode_idx])
+                    mode_pair_pol           = get_polarization(structure_curr.modes[mode_pair_idx])
+                    overlap                 = structure_curr.overlap[(mode_idx, mode_pair_idx)]
+                    # mulitiply in time domain
+                    raman_straight_contrib  = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol] * overlap
+                    raman_cross_contrib     = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol] * overlap
+                    # Raman noise is multiplicative in the time domain
+                    raman_noise_term      .*= view(ut, :, mode_idx) * raman_straight_contrib .+ view(ut, :, mode_pair_idx) * raman_cross_contrib
+                else
+                    # mulitiply in time domain
+                    raman_noise_term      .*= view(ut, :, mode_idx) * frac_raman
+                end
+            end
+            du2[:, mode_idx] = -(view(shock_term, :, mode_idx, structure_idx)
+                                 .* (planned_ifft! * raman_noise_term)
+                                 .* exp.(-view(D, :, mode_idx, structure_idx) * z)
+                                )
+        end
+    end
+    return f, g, D, planned_fft!, planned_ifft!
 end
 
 function build_GLLE(model, ω, tmesh)
@@ -312,7 +389,7 @@ function build_model_raman(model::Model, tmesh, ω)
                 tau2 = structure.material.raman.tau2
                 raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
                 raman_response[:, j ,i] = ifft!(raman_timeresponse)
-                raman_noise[:, j, i] = 2 * ħ * ω0 * abs.(imag.(view(raman_response, :, j, i))) .* (bose_distribution.(abs.(ω-ω0)+ω[2]-ω[1]) .+ (ω .< ω0))
+                raman_noise[:, j, i] = sqrt.(2 * ħ * ω0 * abs.(imag.(view(raman_response, :, j, i))) .* (bose_distribution.(abs.(ω-ω0)+ω[2]-ω[1]) .+ (ω .< ω0)))
             end
         end
     end

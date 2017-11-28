@@ -105,10 +105,12 @@ mutable struct Waveguide{T} <: AbstractStructure
     material::AbstractMaterial
     modes::Vector{AbstractMode}
     interactions::Dict{Int, Int}
+    overlap::Dict{Tuple{Int, Int}, Float64}
 end
 Waveguide(l, orient, mat) = Waveguide{typeof(l)}(l, orient, mat,
                                                  AbstractMode[],
-                                                 Dict{Int, Int}())
+                                                 Dict{Int, Int}(),
+                                                 Dict{Tuple{Int, Int}, Float64}())
 
 abstract type AbstractResonator <: AbstractStructure end
 mutable struct CircularResonator{T} <: AbstractResonator

@@ -39,7 +39,7 @@ end
 function add_mode!(structure, mode::Mode)
     push!(structure.modes, mode)
 end
-function add_interaction!(structure, mode_1::Mode, mode_2::Mode)
+function add_interaction!(structure, mode_1::Mode, mode_2::Mode, overlap::Float64=1.0)
     !(mode_1 in structure.modes) && error("$mode_1 not found in structure")
     !(mode_2 in structure.modes) && error("$mode_2 not found in structure")
 
@@ -49,4 +49,6 @@ function add_interaction!(structure, mode_1::Mode, mode_2::Mode)
     mode_2.has_interaction = true
     structure.interactions[mode_1_idx] = mode_2_idx
     structure.interactions[mode_2_idx] = mode_1_idx
+    structure.overlap[(mode_1_idx, mode_2_idx)] = overlap
+    structure.overlap[(mode_2_idx, mode_1_idx)] = overlap
 end

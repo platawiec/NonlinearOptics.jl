@@ -1,10 +1,13 @@
 # Dispatch types to call different problem builders
 abstract type AbstractExperiment end
 abstract type AbstractDynamicExperiment <: AbstractExperiment end
+abstract type AbstractStochasticExperiment <: AbstractExperiment end
 abstract type AbstractSteadyStateExperiment <: AbstractExperiment end
 struct DynamicLL <: AbstractDynamicExperiment end
 struct DynamicNLSE <: AbstractDynamicExperiment end
 struct DynamicIkeda <: AbstractDynamicExperiment end
+
+struct StochasticNLSE <: AbstractStochasticExperiment end
 
 struct SteadyStateLL <: AbstractSteadyStateExperiment end
 struct SteadyStateNLSE <: AbstractSteadyStateExperiment end
@@ -14,6 +17,16 @@ struct SteadyStateIkeda <: AbstractSteadyStateExperiment end
 abstract type AbstractNLOProblem end
 mutable struct DynamicNLSEProblem{fType, f0Type, fftType, ifftType, meshType, opType} <: AbstractNLOProblem
     prob::ODEProblem
+    model::AbstractModel
+    ω::fType
+    ω0::f0Type
+    tmesh::meshType
+    planned_fft::fftType
+    planned_ifft::ifftType
+    Doperator::opType
+end
+mutable struct StochasticNLSEProblem{fType, f0Type, fftType, ifftType, meshType, opType} <: AbstractNLOProblem
+    prob::SDEProblem
     model::AbstractModel
     ω::fType
     ω0::f0Type
@@ -46,7 +59,7 @@ end
 
 abstract type AbstractNLOSolution end
 mutable struct DynamicNLOSolution <: AbstractNLOSolution
-    sol::ODESolution
+    sol::DESolution
     prob::AbstractNLOProblem
 end
 

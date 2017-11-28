@@ -1,6 +1,6 @@
 module NonlinearOptics
     using Polynomials
-    using OrdinaryDiffEq, DiffEqBase, Tensors
+    using OrdinaryDiffEq, DiffEqBase, StochasticDiffEq, Tensors
     using Juno
     using RecursiveArrayTools, MuladdMacro, Parameters
 
@@ -50,7 +50,8 @@ module NonlinearOptics
     export add_mode!, add_interaction!
     export Model, ToyModel
     export DynamicNLSE, DynamicLL, DynamicIkeda,
-           SteadyStateNLSE, SteadyStateLL, SteadyStateIkeda
+           SteadyStateNLSE, SteadyStateLL, SteadyStateIkeda,
+           StochasticNLSE
     export FT
     export Glass, Silicon, Diamond
 
