@@ -9,34 +9,25 @@ end
 
 abstract type AbstractMaterial end
 
-abstract type AbstractRamanResponse end
-struct RamanCoefficient{T, T1, T2} <: AbstractRamanResponse
-    raman::T
+struct RamanTensor{T, T1, T2, T3}
+    tensor::T
     tau1::T1
     tau2::T2
+    raman_fraction::T3
 end
-struct RamanTensor{T, T1, T2} <: AbstractRamanResponse
-    raman::T
-    tau1::T1
-    tau2::T2
+struct ElectronicTensor{T, T1}
+    tensor::T
+    nl_index::T1
 end
 
 abstract type AbstractDielectric end
 struct DielectricCoefficient <: AbstractDielectric end
 struct DielectricTensor <: AbstractDielectric end
 
-struct Glass{T} <: AbstractMaterial
-    nonlinearindex::T
-    raman::RamanCoefficient
-    ϵ::DielectricCoefficient
-end
-struct Crystal{T} <: AbstractMaterial
-    nonlinearindex::T
+struct Material
+    electronic::ElectronicTensor
     raman::RamanTensor
-    ϵ::DielectricTensor
 end
-Glass(nl_index, tau1, tau2) = Glass{typeof(nl_index)}(nl_index, RamanCoefficient(1.0, tau1, tau2), DielectricCoefficient())
-Crystal(nl_index, tau1, tau2) = Crystal{typeof(nl_index)}(nl_index, RamanTensor(1.0, tau1, tau2), DielectricTensor())
 
 abstract type AbstractOpticalAttr end
 
@@ -102,7 +93,7 @@ abstract type AbstractStructure end
 mutable struct Waveguide{T} <: AbstractStructure
     length::T
     orientation::Int
-    material::AbstractMaterial
+    material::Material
     modes::Vector{AbstractMode}
     interactions::Dict{Int, Int}
     overlap::Dict{Tuple{Int, Int}, Float64}
@@ -115,7 +106,7 @@ Waveguide(l, orient, mat) = Waveguide{typeof(l)}(l, orient, mat,
 abstract type AbstractResonator <: AbstractStructure end
 mutable struct CircularResonator{T} <: AbstractResonator
     radius::T
-    material::AbstractMaterial
+    material::Material
     modes::Vector{AbstractMode}
 end
 CircularResonator(r, mat) = CircularResonator{typeof(r)}(r, mat, AbstractMode[])
@@ -123,7 +114,7 @@ mutable struct RacetrackResonator{T} <: AbstractResonator
     radius::T
     length::T
     orientation::Int
-    material::AbstractMaterial
+    material::Material
     modes::Vector{AbstractMode}
 end
 RacetrackResonator(r, l, mat, orient) = RacetrackResonator{typeof(r)}(

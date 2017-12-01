@@ -44,7 +44,7 @@ function nonlinearcoeff(model::Model, ω)
     # pull n2 from structure
     nlcoeff = zeros(eltype(ω), length(ω), num_modes(model), num_structures(model))
     for (i, structure) in enumerate(model.structure)
-        nl_n = structure.material.nonlinearindex
+        nl_n = structure.material.electronic.nl_index
         for (j, mode) in enumerate(structure.modes)
             nlcoeff[:, j, i] = ω .* nl_n .* mode.corefraction.(ω) ./ mode.effectivearea.(ω) / c
         end
@@ -93,20 +93,24 @@ function get_orientation(structure, z)
     return Vec{3}((1, 0, 0)), π/4
 end
 
-# need to get material tensor and wait for Tensors.jl to merge with rotation
+# need to wait for Tensors.jl to merge with rotation
 function raman_tensor(structure, z)
     axis_vec, rot_angle = get_orientation(structure, z)
     #tensor = material.raman_tensor
-    tensor = CubicRamanTensor() # placeholder
+    tensor = structure.material.raman.tensor
     #tensor = rotate(tensor, axis_vec, rot_angle)
     return tensor
 end
 function electronic_tensor(structure, z)
     axis_vec, rot_angle = get_orientation(structure, z)
     #tensor = material.electronic_tensor
-    tensor = CubicElectronicTensor(0.1) # TODO placeholders
+    tensor = structure.material.electronic.tensor
     #tensor = rotate(tensor, axis_vec, rot_angle)
     return tensor
+end
+
+@inline function raman_fraction(structure)
+    return structure.material.raman.raman_fraction
 end
 
 interacts_with_other_mode(mode) = mode.has_interaction

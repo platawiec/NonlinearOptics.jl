@@ -185,6 +185,7 @@ function build_GNLSE(model::Model, ω, tmesh)
         structure_curr  = model.structure[structure_idx]
         raman_tens      = raman_tensor(structure_curr, z)
         electronic_tens = electronic_tensor(structure_curr, z)
+        frac_raman      = raman_fraction(structure_curr)
         # First we change out of the interaction picture, turning all of our modes
         # from an interaction picture fourier-domain represenation to a time-domain
         # representation
@@ -206,10 +207,10 @@ function build_GNLSE(model::Model, ω, tmesh)
                     mode_pair_pol           = get_polarization(structure_curr.modes[mode_pair_idx])
                     overlap                 = structure_curr.overlap[(mode_idx, mode_pair_idx)]
                     # mulitiply in fourier space for convolution
-                    raman_straight_contrib  = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol] * overlap
-                    kerr_straight_contrib   = electronic_tens[mode_pol, mode_pol, mode_pol, mode_pol] * overlap
-                    raman_cross_contrib     = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol] * overlap
-                    kerr_cross_contrib      = electronic_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol] * overlap
+                    raman_straight_contrib  = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol] * overlap * frac_raman
+                    kerr_straight_contrib   = electronic_tens[mode_pol, mode_pol, mode_pol, mode_pol] * overlap * (1-frac_raman)
+                    raman_cross_contrib     = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol] * overlap * frac_raman
+                    kerr_cross_contrib      = electronic_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol] * overlap * (1-frac_raman)
                     raman_straight_term     = planned_ifft! * abs2.(ut[:, mode_idx]) # prepare intensity for convolution - note that this allocates, so we don't call copy()
                     raman_cross_term        = planned_ifft! * (conj.(ut[:, mode_pair_idx]).*(ut[:, mode_idx])) # prepare intensity for convolution
                     raman_straight_term    .= raman_straight_term .* view(raman_response, :, mode_idx, structure_idx)
@@ -222,9 +223,9 @@ function build_GNLSE(model::Model, ω, tmesh)
                 else
                     raman_term              = planned_ifft! * abs2.(ut[:, mode_idx]) # prepare intensity for convolution
                     # mulitiply in fourier space for convolution
-                    @. raman_term           = raman_term * raman_response[:, mode_idx, structure_idx]
+                    raman_term             .= raman_term .* view(raman_response, :, mode_idx, structure_idx)
                     planned_fft! * raman_term # fourier transform back
-                    du[:, mode_idx]        .= view(du, :, mode_idx) .* ((1-frac_raman)*abs2.(view(du, :, mode_idx)) + frac_raman*(raman_term))
+                    du[:, mode_idx]        .= view(ut, :, mode_idx) .* ((1-frac_raman)*abs2.(view(ut, :, mode_idx)) .+ frac_raman*(raman_term))
                 end
             else
                 du[:, mode_idx] .= view(du, :, mode_idx) .* abs2.(view(du, :, mode_idx))
@@ -242,6 +243,7 @@ function build_GNLSE(model::Model, ω, tmesh)
         structure_curr  = model.structure[structure_idx]
         raman_tens      = raman_tensor(structure_curr, z)
         electronic_tens = electronic_tensor(structure_curr, z)
+        frac_raman      = raman_fraction(structure_curr)
         # First we change out of the interaction picture, turning all of our modes
         # from an interaction picture fourier-domain represenation to a time-domain
         # representation
@@ -265,8 +267,8 @@ function build_GNLSE(model::Model, ω, tmesh)
                     mode_pair_pol           = get_polarization(structure_curr.modes[mode_pair_idx])
                     overlap                 = structure_curr.overlap[(mode_idx, mode_pair_idx)]
                     # mulitiply in time domain
-                    raman_straight_contrib  = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol] * overlap
-                    raman_cross_contrib     = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol] * overlap
+                    raman_straight_contrib  = raman_tens[mode_pol, mode_pol, mode_pol, mode_pol] * overlap * frac_raman
+                    raman_cross_contrib     = raman_tens[mode_pol, mode_pair_pol, mode_pair_pol, mode_pol] * overlap * frac_raman
                     # Raman noise is multiplicative in the time domain
                     raman_noise_term      .*= view(ut, :, mode_idx) * raman_straight_contrib .+ view(ut, :, mode_pair_idx) * raman_cross_contrib
                 else
@@ -373,7 +375,7 @@ function build_model_raman(model::ToyModel, tmesh, ω)
     raman_response = (1+0im)*similar(tmesh)
     if model.has_raman
         tau1 = 0.0122; tau2 = 0.032
-        raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
+        raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)*length(tmesh)
         raman_response = ifft!(fftshift(raman_timeresponse))
     end
     return raman_response, zero(raman_response)
@@ -387,8 +389,8 @@ function build_model_raman(model::Model, tmesh, ω)
             if mode.has_raman
                 tau1 = structure.material.raman.tau1
                 tau2 = structure.material.raman.tau2
-                raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)
-                raman_response[:, j ,i] = ifft!(raman_timeresponse)
+                raman_timeresponse = (1+0im).*(tmesh .> 0) .* (tau1.^2 + tau2.^2)./tau1./tau2.^2 .* exp.(-tmesh/tau2).*sin.(tmesh/tau1)
+                raman_response[:, j ,i] = ifft!(fftshift(raman_timeresponse))
                 raman_noise[:, j, i] = sqrt.(2 * ħ * ω0 * abs.(imag.(view(raman_response, :, j, i))) .* (bose_distribution.(abs.(ω-ω0)+ω[2]-ω[1]) .+ (ω .< ω0)))
             end
         end
