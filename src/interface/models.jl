@@ -1,10 +1,32 @@
-# defines interfaces and traits of Model and ToyModel types
-pathlength(w::Waveguide) = w.length
-pathlength(res::CircularResonator) = 2pi*res.radius
-pathlength(res::RacetrackResonator) = 2pi*res.radius + 2*res.length
+abstract type AbstractModel end
+mutable struct Model <: AbstractModel
+    laser::AbstractLaser
+    waveguide::Waveguide
+end
+mutable struct ToyModel{T} <: AbstractModel
+    ω0::T
+    FSR::T
+    nonlinearcoeff::T
+    linearloss::T
+    coupling::T
+    power_in::T
+    length::T
+    detuning::T
+    betacoeff::Vector{T}
+    pulsetime::T
+    has_shock::Bool
+    has_raman::Bool
+end
+ToyModel(;ω0=200., FSR=0.1, nonlinearcoeff=1.0, linearloss=0.009, coupling=0.009,
+          power_in = 0.755, length=628e-6, detuning=0.0534, pulsetime=0.1,
+          betacoeff=[0, 0, -0.05],
+          has_shock=false, has_raman=false) = ToyModel(ω0, FSR, nonlinearcoeff, linearloss,
+                                              coupling, power_in, length,
+                                              detuning, betacoeff, pulsetime,
+                                              has_shock, has_raman)
 
-pathlength(m::ToyModel) = m.length
-pathlength(m::Model) = sum(pathlength, m.structure)
+@inline currentstructure(model::Model, z) = currentstructure(model.waveguide, z)
+@inline pathlength(m::Model) = pathlength(m.waveguide)
 
 function derive_pulse(m::Model, t)
     #TODO: Generic injection of pulse to arbitrary mode
@@ -26,11 +48,11 @@ end
 
 linearloss(model::ToyModel, ω) = model.linearloss
 function linearloss(model::Model, ω)
-    firstmode = model.structure[1].modes[1]
+    firstmode = first(first(model.waveguide.structures).medium.modes)
     TLoss = eltype(firstmode.linearloss.(ω))
     loss = zeros(TLoss, length(ω), num_modes(model), num_structures(model))
-    for (i, structure) in enumerate(model.structure)
-        for (j, mode) in enumerate(structure.modes)
+    for (i, structure) in enumerate(model.waveguide.structures)
+        for (j, mode) in enumerate(structure.medium.modes)
             loss[:, j, i] = mode.linearloss.(ω)
         end
     end
@@ -39,14 +61,14 @@ end
 
 nonlinearcoeff(model::ToyModel, ω) = model.nonlinearcoeff
 function nonlinearcoeff(model::Model, ω)
-    firstmode = model.structure[1].modes[1]
-    nl_n = model.structure[1].material.electronic.nl_index
+    firstmode = first(first(model.waveguide.structures).medium.modes)
+    nl_n = first(model.waveguide.structures).medium.material.electronic.nl_index
     TNL = eltype(ω .* nl_n .* firstmode.corefraction(first(ω)) / firstmode.effectivearea(first(ω)) / c0)
     # pull n2 from structure
     nlcoeff = zeros(TNL, length(ω), num_modes(model), num_structures(model))
-    for (i, structure) in enumerate(model.structure)
-        nl_n = structure.material.electronic.nl_index
-        for (j, mode) in enumerate(structure.modes)
+    for (i, structure) in enumerate(model.waveguide.structures)
+        nl_n = structure.medium.material.electronic.nl_index
+        for (j, mode) in enumerate(structure.medium.modes)
             nlcoeff[:, j, i] = ω .* nl_n .* mode.corefraction.(ω) ./ mode.effectivearea.(ω) / c0
         end
     end
@@ -61,8 +83,8 @@ function stationarydispersion(model::ToyModel, ω)
 end
 function stationarydispersion(model::Model, ω)
     dispersion = zeros(eltype(ω / c0), length(ω), num_modes(model), num_structures(model))
-    for (i, structure) in enumerate(model.structure)
-        for (j, mode) in enumerate(structure.modes)
+    for (i, structure) in enumerate(model.waveguide.structures)
+        for (j, mode) in enumerate(structure.medium.modes)
             dispersion[:, j, i] = get_stationarydispersion(mode, model.laser).(ω)
         end
     end
@@ -70,50 +92,39 @@ function stationarydispersion(model::Model, ω)
 end
 
 has_raman(m::ToyModel) = m.has_raman
-function has_raman(m::Model)
-    has_raman = fill(false, num_modes(m))
-    for structure in m.structure
-        for (i, mode) in enumerate(structure.modes)
+function has_raman(model::Model)
+    has_raman = fill(false, num_modes(model))
+    for structure in model.waveguide.structures
+        for (i, mode) in enumerate(structure.medium.modes)
             has_raman[i] = mode.has_raman
         end
     end
     return has_raman
 end
 
-num_structures(m::Model) = length(m.structure)
-num_modes(m::Model) = length(m.structure[1].modes)
-
-function get_structure_idx(model::Model, z)
-    structure_pos = cumsum(pathlength.(model.structure))
-    idx = count(i->(z*m>i), structure_pos)+1
-    return idx
-end
-get_structure_idx(m::ToyModel, z) = 1
-# placeholder for now
-function get_orientation(structure, z)
-    return Vec{3}((1, 0, 0)), π/4
-end
+@inline num_structures(m::Model) = num_structures(m.waveguide)
+@inline num_modes(m::Model) = num_modes(m.waveguide)
 
 # need to wait for Tensors.jl to merge with rotation
 function raman_tensor(structure, z)
-    axis_vec, rot_angle = get_orientation(structure, z)
+    axis_vec, rot_angle = orientation(structure, z)
     #tensor = material.raman_tensor
-    tensor = structure.material.raman.tensor
+    tensor = structure.medium.material.raman.tensor
     #tensor = rotate(tensor, axis_vec, rot_angle)
     return tensor
 end
 function electronic_tensor(structure, z)
-    axis_vec, rot_angle = get_orientation(structure, z)
+    axis_vec, rot_angle = orientation(structure, z)
     #tensor = material.electronic_tensor
-    tensor = structure.material.electronic.tensor
+    tensor = structure.medium.material.electronic.tensor
     #tensor = rotate(tensor, axis_vec, rot_angle)
     return tensor
 end
 
 @inline function raman_fraction(structure)
-    return structure.material.raman.raman_fraction
+    return structure.medium.material.raman.raman_fraction
 end
 
 @inline interacts_with_other_mode(mode) = mode.has_interaction
-@inline get_paired_mode_idx(structure, mode_idx) = structure.interactions[mode_idx]
+@inline get_paired_mode_idx(med::Medium, mode_idx) = med.interactions[mode_idx]
 @inline get_polarization(mode) = mode.polarization == :TM ? 1 : 2

@@ -23,6 +23,7 @@ module NonlinearOptics
 
     include("interface/fit_util.jl")
     include("interface/types.jl")
+    include("waveguides/waveguides.jl")
     include("interface/models.jl")
     include("interface/solvertypes.jl")
     include("interface/interface.jl")
@@ -48,6 +49,7 @@ module NonlinearOptics
     export frequency, wavelength, getω, get_beta, get_FSR, get_groupindex,
            get_property, get_label
     export add_mode!, add_interaction!
+    export add_straight!, add_turn!
     export Model, ToyModel
     export DynamicNLSE, DynamicLL, DynamicIkeda,
            SteadyStateNLSE, SteadyStateLL, SteadyStateIkeda,

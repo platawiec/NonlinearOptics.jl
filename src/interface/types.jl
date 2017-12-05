@@ -1,5 +1,3 @@
-abstract type AbstractMaterial end
-
 struct RamanTensor{T, T1, T2, T3}
     tensor::T
     tau1::T1
@@ -33,7 +31,6 @@ function OpticalAttr(source, property, label, fit_func)
     OpticalAttr{eltype(source), eltype(property), typeof(fit_func)}(source, property, label, fit_func)
 end
 function OpticalAttr(source::AbstractVector{TF}, property, label) where {TF<:Unitful.Frequency}
-    TF = eltype(source)
     T = eltype(property)
     OpticalAttr{TF, T, ScaledFit{TF, Poly{T}}}(source, property, label)
 end
@@ -85,38 +82,6 @@ ToyMode(beta, area_eff) = ToyMode(beta, area_eff,
                           OpticalAttr(1.0, "Core Fraction"),
                           OpticalAttr(1.0, "Coupling"))
 
-abstract type AbstractStructure end
-
-mutable struct Waveguide{T <: Unitful.Length} <: AbstractStructure
-    length::T
-    orientation::Int
-    material::Material
-    modes::Vector{AbstractMode}
-    interactions::Dict{Int, Int}
-    overlap::Dict{Tuple{Int, Int}, Float64}
-end
-Waveguide(l, orient, mat) = Waveguide{typeof(l)}(l, orient, mat,
-                                                 AbstractMode[],
-                                                 Dict{Int, Int}(),
-                                                 Dict{Tuple{Int, Int}, Float64}())
-
-abstract type AbstractResonator <: AbstractStructure end
-mutable struct CircularResonator{T} <: AbstractResonator
-    radius::T
-    material::Material
-    modes::Vector{AbstractMode}
-end
-CircularResonator(r, mat) = CircularResonator{typeof(r)}(r, mat, AbstractMode[])
-mutable struct RacetrackResonator{T} <: AbstractResonator
-    radius::T
-    length::T
-    orientation::Int
-    material::Material
-    modes::Vector{AbstractMode}
-end
-RacetrackResonator(r, l, mat, orient) = RacetrackResonator{typeof(r)}(
-                                                    r, l, mat, orient, AbstractMode[])
-
 abstract type AbstractLaser end
 mutable struct CWLaser{TF<:Unitful.Frequency, T1, TP<:Unitful.Power} <: AbstractLaser
     frequency::typeof(1.0THz2π)
@@ -131,30 +96,3 @@ mutable struct PulsedLaser{TF<:Unitful.Frequency,
     power_in::TP
     pulsetime::TT
 end
-
-abstract type AbstractModel end
-mutable struct Model <: AbstractModel
-    laser::AbstractLaser
-    structure::Vector{AbstractStructure}
-end
-mutable struct ToyModel{T} <: AbstractModel
-    ω0::T
-    FSR::T
-    nonlinearcoeff::T
-    linearloss::T
-    coupling::T
-    power_in::T
-    length::T
-    detuning::T
-    betacoeff::Vector{T}
-    pulsetime::T
-    has_shock::Bool
-    has_raman::Bool
-end
-ToyModel(;ω0=200., FSR=0.1, nonlinearcoeff=1.0, linearloss=0.009, coupling=0.009,
-          power_in = 0.755, length=628e-6, detuning=0.0534, pulsetime=0.1,
-          betacoeff=[0, 0, -0.05],
-          has_shock=false, has_raman=false) = ToyModel(ω0, FSR, nonlinearcoeff, linearloss,
-                                              coupling, power_in, length,
-                                              detuning, betacoeff, pulsetime,
-                                              has_shock, has_raman)
