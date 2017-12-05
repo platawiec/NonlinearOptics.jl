@@ -1,12 +1,3 @@
-abstract type AbstractSource end
-
-struct Frequency{T} <: AbstractSource
-    f::T
-end
-struct Wavelength{T} <: AbstractSource
-    λ::T
-end
-
 abstract type AbstractMaterial end
 
 struct RamanTensor{T, T1, T2, T3}
@@ -29,27 +20,33 @@ struct Material
     raman::RamanTensor
 end
 
-abstract type AbstractOpticalAttr end
-
-mutable struct OpticalAttr{T, F} <: AbstractOpticalAttr
-    source::Vector{Frequency}
+mutable struct OpticalAttr{TF<:Unitful.Frequency, T, F}
+    source::Vector{TF}
     property::Vector{T}
     label::String
     fit_func::F
-    OpticalAttr{T, F}(s, p, label) where {T, F} = fit(new(s, p, label))
-    OpticalAttr{T, F}(s, p, label, f) where {T, F} = new(s, p, label, f)
+    OpticalAttr{TF, T, F}(s, p, label) where {TF, T, F} = fit(new(s, p, label))
+    OpticalAttr{TF, T, F}(s, p, label, f) where {TF, T, F} = new(s, p, label, f)
 end
 
 function OpticalAttr(source, property, label, fit_func)
-    OpticalAttr{eltype(property), typeof(fit_func)}(source, property, label, fit_func)
+    OpticalAttr{eltype(source), eltype(property), typeof(fit_func)}(source, property, label, fit_func)
 end
-function OpticalAttr(source, property, label)
+function OpticalAttr(source::AbstractVector{TF}, property, label) where {TF<:Unitful.Frequency}
+    TF = eltype(source)
     T = eltype(property)
-    OpticalAttr{T, ScaledFit{T, Poly{T}}}(source, property, label)
+    OpticalAttr{TF, T, ScaledFit{TF, Poly{T}}}(source, property, label)
+end
+function OpticalAttr(source::AbstractVector{TL}, property, label) where {TL<:Unitful.Length}
+    source_infrequency = frequency.(source)
+    TF = eltype(source_infrequency)
+    T = eltype(property)
+    OpticalAttr{TF, T, ScaledFit{TF, Poly{T}}}(source_infrequency, property, label)
 end
 function OpticalAttr(property::Number, label)
+    TF = typeof(1.0THz2π)
     T = typeof(property)
-    OpticalAttr{T, Poly{T}}([Frequency(0.0)], [property], label, Poly([property]))
+    OpticalAttr{TF, T, Poly{T}}([TF(0.0)], [property], label, Poly([property]))
 end
 
 abstract type AbstractMode end
@@ -84,13 +81,13 @@ struct ToyMode <: AbstractMode
     coupling::OpticalAttr
 end
 ToyMode(beta, area_eff) = ToyMode(beta, area_eff,
-                                  OpticalAttr(0.0, "Linear Loss (1/m)"),
-                                  OpticalAttr(1.0, "Core Fraction"),
-                                  OpticalAttr(1.0, "Coupling"))
+                          OpticalAttr(0.0, "Linear Loss (1/m)"),
+                          OpticalAttr(1.0, "Core Fraction"),
+                          OpticalAttr(1.0, "Coupling"))
 
 abstract type AbstractStructure end
 
-mutable struct Waveguide{T} <: AbstractStructure
+mutable struct Waveguide{T <: Unitful.Length} <: AbstractStructure
     length::T
     orientation::Int
     material::Material
@@ -121,16 +118,18 @@ RacetrackResonator(r, l, mat, orient) = RacetrackResonator{typeof(r)}(
                                                     r, l, mat, orient, AbstractMode[])
 
 abstract type AbstractLaser end
-mutable struct CWLaser{T1, T2} <: AbstractLaser
-    frequency::Frequency
+mutable struct CWLaser{TF<:Unitful.Frequency, T1, TP<:Unitful.Power} <: AbstractLaser
+    frequency::typeof(1.0THz2π)
     detuning::T1
-    power::T2
+    power::TP
 end
 CWLaser(f, δ, P) = CWLaser{typeof(δ), typeof(P)}(f, δ, P)
-mutable struct PulsedLaser{T1,T2} <: AbstractLaser
-    frequency::Frequency
-    power_in::T1
-    pulsetime::T2
+mutable struct PulsedLaser{TF<:Unitful.Frequency,
+                           TP<:Unitful.Power,
+                           TT<:Unitful.Time} <: AbstractLaser
+    frequency::TF
+    power_in::TP
+    pulsetime::TT
 end
 
 abstract type AbstractModel end

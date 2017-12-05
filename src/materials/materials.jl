@@ -44,36 +44,36 @@ IsotropicTensor() = IsotropicTensor(1,1,1)
 const Diamond = Material(
                     ElectronicTensor(
                         CubicElectronicTensor(1.2),
-                        1.3e-19
+                        1.3e-19m^2/W
                     ),
                     RamanTensor(
                         CubicRamanTensor(),
-                        0.004,
-                        5.7,
+                        0.004ps,
+                        5.7ps,
                         0.28
                     )
                 )
 const Silicon = Material(
                     ElectronicTensor(
                         CubicElectronicTensor(1.27),
-                        3.8-18
+                        3.8e-18m^2/W
                     ),
                     RamanTensor(
                         CubicRamanTensor(),
-                        0.01,
-                        3.0,
+                        0.01ps,
+                        3.0ps,
                         0.08
                     )
                 )
 const SiO2 = Material(
                     ElectronicTensor(
                         IsotropicTensor(),
-                        2.7e-20,
+                        2.7e-20m^2/W,
                     ),
                     RamanTensor(
                         IsotropicTensor(),
-                        0.0122,
-                        0.032,
+                        0.0122ps,
+                        0.032ps,
                         0.18
                     )
                 )

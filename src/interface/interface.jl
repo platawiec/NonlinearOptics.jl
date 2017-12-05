@@ -1,39 +1,38 @@
 # This can probably be cleaned up and simplifed with a little thought
-function wavelength(source::Wavelength) source.λ end
-function wavelength(source::Frequency) c/source.f end
-function wavelength(attr::AbstractOpticalAttr) wavelength.(attr.source) end
-function wavelength(x) wavelength(convert(Wavelength, x)) end
-function wavelength(laser::AbstractLaser) wavelength(laser.frequency) end
-function frequency(source::Wavelength) c/source.λ end
-function frequency(source::Frequency) source.f end
-function frequency(attr::AbstractOpticalAttr) frequency.(attr.source) end
-function frequency(laser::AbstractLaser) frequency(laser.frequency) end
-function frequency(x) frequency(convert(Wavelength, x)) end
-function getω(source) 2pi*frequency(source) end
+@inline wavelength{T<:Unitful.Frequency}(s::T) = c0/s
+@inline wavelength{T<:Unitful.Length}(s::T) = s
+@inline wavelength(attr::OpticalAttr) = wavelength.(attr.source)
+@inline wavelength(laser::AbstractLaser) = wavelength(laser.frequency)
+@inline frequency{T<:Unitful.Frequency}(s::T) = s
+@inline frequency{T<:Unitful.Length}(s::T) = c0/s
+@inline frequency(attr::OpticalAttr) = frequency.(attr.source)
+@inline frequency(laser::AbstractLaser) = frequency(laser.frequency)
+@inline frequency(model::Model) = frequency(model.laser)
 
 function get_attr(attr::OpticalAttr) attr.property end
 
 function get_label(attr::OpticalAttr) attr.label end
 """
 OpticalAttr is callable. Giving a source source will return the
-value of the AbstractOpticalAttr interpolated at that point
+value of the OpticalAttr interpolated at that point
 """
-(attr::OpticalAttr)(source) = attr.fit_func(getω(source))
+(attr::OpticalAttr)(source) = attr.fit_func(frequency(source))
 (attr::OpticalAttr)(ω::Number) = attr.fit_func(ω)
 """
 Alias for der
 """
-function der(attr::AbstractOpticalAttr, query; order=1)
+function der(attr::OpticalAttr, query; order=1)
     der(attr.fit_func, query; order=order)
 end
 
-function fit(attr::AbstractOpticalAttr, poly_order=12)
-    ω = getω(attr)
+function fit(attr::OpticalAttr, poly_order=12)
+    ω = frequency(attr)
     μ = mean(ω)
     σ = std(ω)
-    p = polyfit((ω-μ)/σ, get_attr(attr), poly_order)
+    attr_unit = oneunit(first(get_attr(attr)))
+    p = attr_unit*polyfit((ω-μ)/σ, get_attr(attr)./attr_unit, poly_order)
     attr.fit_func = ScaledFit(μ, σ, p)
-    attr
+    return attr
 end
 
 function add_mode!(structure, mode::Mode)
@@ -51,4 +50,33 @@ function add_interaction!(structure, mode_1::Mode, mode_2::Mode, overlap::Float6
     structure.interactions[mode_2_idx] = mode_1_idx
     structure.overlap[(mode_1_idx, mode_2_idx)] = overlap
     structure.overlap[(mode_2_idx, mode_1_idx)] = overlap
+end
+
+"""
+    add_straight!(structure, length[, medium])
+
+Adds a straight segment of `length` to `structure`, optionally
+changing the medium of the propagating mode to `medium`
+"""
+function add_straight!(structure, length, medium)
+end
+function add_straight!(structure, length)
+end
+
+function add_turn!(structure, radius, angle)
+end
+
+"""
+    add_taper!(structure, length)
+
+Adds a tapered segment of `length`. The variables for the parameters
+(dispersion, nonlinearity, etc.) in the tapered segment are linearly
+interpolated between the parameters for the modes immediately preceding
+and succeeding the tapered region. The medium must be the same both
+before and after the taper
+
+Not implemented
+"""
+function add_taper!(structure, length)
+    error("add_taper!: Not implemented")
 end

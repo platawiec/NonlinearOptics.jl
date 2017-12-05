@@ -1,5 +1,5 @@
 function build_problem(model, probtype::DynamicNLSE;
-                       tpoints=2^13, time_window=10.0, kwargs...)
+                       tpoints=2^13, time_window=10.0ps, kwargs...)
 
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
     zspan = (0.0, pathlength(model))
@@ -33,18 +33,21 @@ function build_problem(model, probtype::DynamicNLSE;
 end
 
 function build_problem(model, probtype::StochasticNLSE;
-                       tpoints=2^13, time_window=10.0, kwargs...)
+                       tpoints=2^13, time_window=10.0ps, kwargs...)
 
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
-    zspan = (0.0, pathlength(model))
+    zspan = (0.0m, pathlength(model))
 
     ω_zeroed = get_ωmesh(tmesh)
     const dt_mesh = tmesh[2]-tmesh[1]
     ω_zeroed = fftshift(ω_zeroed)
 
-    const ω0 = get_ω0(model)
+    const ω0 = frequency(model)
     const ω = ω_zeroed + ω0
     u0 = derive_pulse(model, tmesh)
+    pulse_unit = oneunit(first(u0))
+    length_unit = oneunit(first(zspan))
+    u0 /= pulse_unit
 
     f, g, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
     planned_ifft! * view(u0, :, 1)
@@ -52,7 +55,7 @@ function build_problem(model, probtype::StochasticNLSE;
         f,
         g,
         u0,
-        zspan
+        (zspan[1]/length_unit, zspan[2]/length_unit)
     )
     prob_exp = StochasticNLSEProblem(
         prob,
@@ -71,7 +74,7 @@ function build_problem(model, probtype::DynamicIkeda;
                        tpoints=2^13, time_window=10.0, kwargs...)
 
     tmesh = linspace(-time_window/2, time_window/2, tpoints)
-    zspan = (0.0, pathlength(model))
+    zspan = (0.0m, pathlength(model))
 
     ω_zeroed = get_ωmesh(tmesh)
     const dt_mesh = tmesh[2]-tmesh[1]
@@ -97,6 +100,7 @@ function build_problem(model, probtype::DynamicIkeda;
                                    ikeda_callback)
     return prob_exp
 end
+
 
 # takes a scalar and turns it into a callable
 function get_func(attr::Number)
@@ -167,8 +171,10 @@ function build_GNLSE(model::Model, ω, tmesh)
     const γnl = nonlinearcoeff(model, ω)
     const beta = stationarydispersion(model, ω)
 
-    const planned_fft! = plan_fft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
-    const planned_ifft! = plan_ifft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
+    unit_time = oneunit(1.0ps)
+    fft_mesh = Vector(Complex.(tmesh./unit_time))
+    const planned_fft! = plan_fft!(fft_mesh, flags=FFTW.MEASURE)
+    const planned_ifft! = plan_ifft!(fft_mesh, flags=FFTW.MEASURE)
     const D = 1im .* beta .- α/2
 
     const use_raman = has_raman(model)
@@ -176,11 +182,9 @@ function build_GNLSE(model::Model, ω, tmesh)
     const shock_term = build_model_shock(model, ω)
     const (raman_response, raman_noise) = build_model_raman(model, tmesh, ω)
 
-    #TODO: generalize
-    const frac_raman = 0.18
-
     const num_mode = num_modes(model)
     function f(z, u, du)
+        @show z
         structure_idx   = get_structure_idx(model, z)
         structure_curr  = model.structure[structure_idx]
         raman_tens      = raman_tensor(structure_curr, z)
@@ -191,7 +195,7 @@ function build_GNLSE(model::Model, ω, tmesh)
         # representation
         ut = zero(du)
         for mode_idx in 1:num_mode
-            ut[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z)
+            ut[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z * m)
             planned_fft! * view(ut, :, mode_idx)
         end
         # Now we handle interactions between the modes in the time domain. Every
@@ -232,8 +236,8 @@ function build_GNLSE(model::Model, ω, tmesh)
             end
             planned_ifft! * view(du, :, mode_idx)
             du[:, mode_idx] .= (view(shock_term, :, mode_idx, structure_idx)
-                                  .* (1im * view(γnl, :, mode_idx, structure_idx) .* view(du, :, mode_idx))
-                                 .* exp.(-view(D, :, mode_idx, structure_idx) * z)
+                                  .* (1im * view(γnl, :, mode_idx, structure_idx) .* view(du, :, mode_idx) * W * m)
+                                 .* exp.(-view(D, :, mode_idx, structure_idx) * z * m)
                                 )
         end
     end
@@ -244,12 +248,13 @@ function build_GNLSE(model::Model, ω, tmesh)
         raman_tens      = raman_tensor(structure_curr, z)
         electronic_tens = electronic_tensor(structure_curr, z)
         frac_raman      = raman_fraction(structure_curr)
+        noise_unit      = oneunit(first(raman_noise))
         # First we change out of the interaction picture, turning all of our modes
         # from an interaction picture fourier-domain represenation to a time-domain
         # representation
         ut = zero(du2)
         for mode_idx in 1:num_mode
-            ut[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z)
+            ut[:, mode_idx] .= view(u, :, mode_idx) .* exp.(view(D, :, mode_idx, structure_idx) * z * m)
             planned_fft! * view(ut, :, mode_idx)
         end
         # Now we handle interactions between the modes in the time domain. Every
@@ -260,7 +265,7 @@ function build_GNLSE(model::Model, ω, tmesh)
                 # TODO: in-place raman noise
                 # We construct the raman noise, which is diagonal in the
                 # frequency domain but multiplicative in our diff eq in the time domain
-                raman_noise_term = fftshift(planned_fft! * (raman_noise[:, mode_idx, structure_idx]))
+                raman_noise_term = fftshift(planned_fft! * (raman_noise[:, mode_idx, structure_idx]/noise_unit))
                 if interacts_with_other_mode(structure_curr.modes[mode_idx])
                     mode_pair_idx           = get_paired_mode_idx(structure_curr, mode_idx)
                     mode_pol                = get_polarization(structure_curr.modes[mode_idx])
@@ -278,7 +283,7 @@ function build_GNLSE(model::Model, ω, tmesh)
             end
             du2[:, mode_idx] = -(view(shock_term, :, mode_idx, structure_idx)
                                  .* (planned_ifft! * raman_noise_term)
-                                 .* exp.(-view(D, :, mode_idx, structure_idx) * z)
+                                 .* exp.(-view(D, :, mode_idx, structure_idx) * z * m)
                                 )
         end
     end
@@ -352,7 +357,7 @@ function build_model_shock(model::ToyModel, ω)
 end
 
 function build_model_shock(model::Model, ω)
-    const ω0 = getω(model.laser)
+    const ω0 = frequency(model.laser)
     shock_term = fill(one(ω0), length(ω), num_modes(model), num_structures(model))
     for (i, structure) in enumerate(model.structure)
         for (j, mode) in enumerate(structure.modes)
@@ -381,15 +386,15 @@ function build_model_raman(model::ToyModel, tmesh, ω)
     return raman_response, zero(raman_response)
 end
 function build_model_raman(model::Model, tmesh, ω)
-    raman_response = zeros(eltype((1+0im)*tmesh), length(tmesh), num_modes(model), num_structures(model))
-    raman_noise = zero(raman_response)
-    ω0 = get_ω0(model)
+    ω0 = frequency(model)
+    raman_response = zeros(Complex, length(tmesh), num_modes(model), num_structures(model))
+    raman_noise = zeros(typeof(sqrt(ħ*ω0)), Base.size(raman_response))
     for (i, structure) in enumerate(model.structure)
         for (j, mode) in enumerate(structure.modes)
             if mode.has_raman
                 tau1 = structure.material.raman.tau1
                 tau2 = structure.material.raman.tau2
-                raman_timeresponse = (1+0im).*(tmesh .> 0) .* (tau1.^2 + tau2.^2)./tau1./tau2.^2 .* exp.(-tmesh/tau2).*sin.(tmesh/tau1)
+                raman_timeresponse = Complex.((tmesh .> 0ps) .* (tau1.^2 + tau2.^2)./tau1./tau2.^2 .* exp.(-tmesh/tau2).*sin.(tmesh/tau1)*oneunit(1.0ps))
                 raman_response[:, j ,i] = ifft!(fftshift(raman_timeresponse))
                 raman_noise[:, j, i] = sqrt.(2 * ħ * ω0 * abs.(imag.(view(raman_response, :, j, i))) .* (bose_distribution.(abs.(ω-ω0)+ω[2]-ω[1]) .+ (ω .< ω0)))
             end

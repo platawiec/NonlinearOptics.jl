@@ -1,8 +1,11 @@
 module NonlinearOptics
     using Polynomials
     using OrdinaryDiffEq, DiffEqBase, StochasticDiffEq, Tensors
-    using Juno
-    using RecursiveArrayTools, MuladdMacro, Parameters
+    using RecursiveArrayTools, Parameters
+
+    import Unitful
+    import Unitful: ps, m, J, THz, °, THz2π, W
+    import Unitful: c0, ħ, k
 
     using RecipesBase
 
@@ -16,15 +19,12 @@ module NonlinearOptics
 
     abstract type AbstractNLSEAlgorithm <: DEAlgorithm end
 
-    const c = 2.99792458e8/1e12 # preferred units are THz
-    const ħ = 1.0545718e-34*1e12 # J⋅ps
-    const ħ_over_kBT = 0.0254607837 # T = 300 K, ps
+    const ħ_over_kBT = ħ/(k*300(Unitful.K)) # T = 300 K, ps
 
     include("interface/fit_util.jl")
     include("interface/types.jl")
     include("interface/models.jl")
     include("interface/solvertypes.jl")
-    include("interface/conversions.jl")
     include("interface/interface.jl")
     include("optics/utils.jl")
     include("optics/dispersion.jl")

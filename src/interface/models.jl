@@ -6,9 +6,6 @@ pathlength(res::RacetrackResonator) = 2pi*res.radius + 2*res.length
 pathlength(m::ToyModel) = m.length
 pathlength(m::Model) = sum(pathlength, m.structure)
 
-get_ω0(m::ToyModel) = m.ω0
-get_ω0(m::Model) = getω(m.laser)
-
 function derive_pulse(m::Model, t)
     #TODO: Generic injection of pulse to arbitrary mode
     pulse = derive_pulse(m.laser, t)
@@ -29,7 +26,9 @@ end
 
 linearloss(model::ToyModel, ω) = model.linearloss
 function linearloss(model::Model, ω)
-    loss = zeros(eltype(ω), length(ω), num_modes(model), num_structures(model))
+    firstmode = model.structure[1].modes[1]
+    TLoss = eltype(firstmode.linearloss.(ω))
+    loss = zeros(TLoss, length(ω), num_modes(model), num_structures(model))
     for (i, structure) in enumerate(model.structure)
         for (j, mode) in enumerate(structure.modes)
             loss[:, j, i] = mode.linearloss.(ω)
@@ -40,13 +39,15 @@ end
 
 nonlinearcoeff(model::ToyModel, ω) = model.nonlinearcoeff
 function nonlinearcoeff(model::Model, ω)
-    #TODO: fix up zero setting
+    firstmode = model.structure[1].modes[1]
+    nl_n = model.structure[1].material.electronic.nl_index
+    TNL = eltype(ω .* nl_n .* firstmode.corefraction(first(ω)) / firstmode.effectivearea(first(ω)) / c0)
     # pull n2 from structure
-    nlcoeff = zeros(eltype(ω), length(ω), num_modes(model), num_structures(model))
+    nlcoeff = zeros(TNL, length(ω), num_modes(model), num_structures(model))
     for (i, structure) in enumerate(model.structure)
         nl_n = structure.material.electronic.nl_index
         for (j, mode) in enumerate(structure.modes)
-            nlcoeff[:, j, i] = ω .* nl_n .* mode.corefraction.(ω) ./ mode.effectivearea.(ω) / c
+            nlcoeff[:, j, i] = ω .* nl_n .* mode.corefraction.(ω) ./ mode.effectivearea.(ω) / c0
         end
     end
     return nlcoeff
@@ -59,7 +60,7 @@ function stationarydispersion(model::ToyModel, ω)
     return dispersion
 end
 function stationarydispersion(model::Model, ω)
-    dispersion = zeros(eltype(ω), length(ω), num_modes(model), num_structures(model))
+    dispersion = zeros(eltype(ω / c0), length(ω), num_modes(model), num_structures(model))
     for (i, structure) in enumerate(model.structure)
         for (j, mode) in enumerate(structure.modes)
             dispersion[:, j, i] = get_stationarydispersion(mode, model.laser).(ω)
@@ -82,9 +83,9 @@ end
 num_structures(m::Model) = length(m.structure)
 num_modes(m::Model) = length(m.structure[1].modes)
 
-function get_structure_idx(m::Model, z)
-    structure_pos = cumsum(pathlength.(m.structure))
-    idx = count(i->(z>i), structure_pos)+1
+function get_structure_idx(model::Model, z)
+    structure_pos = cumsum(pathlength.(model.structure))
+    idx = count(i->(z*m>i), structure_pos)+1
     return idx
 end
 get_structure_idx(m::ToyModel, z) = 1
@@ -113,6 +114,6 @@ end
     return structure.material.raman.raman_fraction
 end
 
-interacts_with_other_mode(mode) = mode.has_interaction
-get_paired_mode_idx(structure, mode_idx) = structure.interactions[mode_idx]
-get_polarization(mode) = mode.polarization == :TM ? 1 : 2
+@inline interacts_with_other_mode(mode) = mode.has_interaction
+@inline get_paired_mode_idx(structure, mode_idx) = structure.interactions[mode_idx]
+@inline get_polarization(mode) = mode.polarization == :TM ? 1 : 2
