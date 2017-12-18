@@ -8,6 +8,7 @@
 @inline frequency(attr::OpticalAttr) = frequency.(attr.source)
 @inline frequency(laser::AbstractLaser) = frequency(laser.frequency)
 @inline frequency(model::Model) = frequency(model.laser)
+@inline frequency(model::ToyModel) = frequency(model.ω0)
 
 function get_attr(attr::OpticalAttr) attr.property end
 
@@ -17,7 +18,6 @@ OpticalAttr is callable. Giving a source source will return the
 value of the OpticalAttr interpolated at that point
 """
 (attr::OpticalAttr)(source) = attr.fit_func(frequency(source))
-(attr::OpticalAttr)(ω::Number) = attr.fit_func(ω)
 """
 Alias for der
 """

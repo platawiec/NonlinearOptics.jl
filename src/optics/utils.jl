@@ -5,6 +5,6 @@ end
 function get_ωmesh(tmesh)
     dt_mesh = tmesh[2]-tmesh[1]
     num_pts = length(tmesh)
-    ω = collect((-num_pts/2:num_pts/2-1)/(num_pts*dt_mesh) .|> THz2π)
+    ω = collect(2π*(-num_pts/2:num_pts/2-1)/(num_pts*dt_mesh) .|> THz2π)
     ω
 end

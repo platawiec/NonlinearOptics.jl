@@ -65,12 +65,12 @@ end
 
 # calling solution returns time-domain solution
 function (sol::DynamicNLOSolution)(z, mode_idx::Int=1)
-    structure_idx = get_structure_idx(sol.prob.model, z)
-    return sol.prob.planned_fft * (view(sol.sol(z), :, mode_idx, structure_idx).*exp.(view(sol.prob.Doperator, :, mode_idx, structure_idx) * z))
+    structure_idx, ls = currentstructure(sol.prob.model, z)
+    return sol.prob.planned_fft * (sol.sol(z/m)[:, mode_idx, structure_idx].*exp.(view(sol.prob.Doperator, :, mode_idx, structure_idx) * z))
 end
 function FT(sol::DynamicNLOSolution, z, mode_idx::Int=1)
     dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
-    structure_idx = get_structure_idx(sol.prob.model, z)
+    structure_idx, ls = currentstructure(sol.prob.model, z)
     return fftshift(view(sol.sol(z), :, mode_idx, structure_idx) .* exp.(view(sol.prob.Doperator, :, mode_idx, structure_idx) * z)) / dt
 end
 

@@ -13,6 +13,7 @@ mode_TE = Mode(neff, Aeff, loss, corefrac, coupling, :TE, true, true)
 # 10 mm long waveguide in default (100) orientation
 wg_simple = Waveguide(Silicon)
 add_straight!(wg_simple, 1e-3m)
+add_turn!(wg_simple, 90°, 1e-3m)
 add_mode!(wg_simple, mode_TM)
 add_mode!(wg_simple, mode_TE)
 add_interaction!(wg_simple, mode_TM, mode_TE)

@@ -21,6 +21,8 @@ module NonlinearOptics
 
     const ħ_over_kBT = ħ/(k*300(Unitful.K)) # T = 300 K, ps
 
+    Unitful.preferunits(ps)
+
     include("interface/fit_util.jl")
     include("interface/types.jl")
     include("waveguides/waveguides.jl")
@@ -41,15 +43,15 @@ module NonlinearOptics
     export solve
     export build_problem
 
-    export Wavelength, Frequency, c
+    export wavelength, frequency, c0
     export OpticalAttr
-    export Mode
-    export CircularResonator, RacetrackResonator, Waveguide
+    export Mode, Waveguide
     export PulsedLaser, CWLaser
     export frequency, wavelength, getω, get_beta, get_FSR, get_groupindex,
            get_property, get_label
     export add_mode!, add_interaction!
     export add_straight!, add_turn!
+    export currentmedium, lastmedium, newmedium
     export Model, ToyModel
     export DynamicNLSE, DynamicLL, DynamicIkeda,
            SteadyStateNLSE, SteadyStateLL, SteadyStateIkeda,

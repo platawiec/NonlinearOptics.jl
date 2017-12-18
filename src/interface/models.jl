@@ -3,23 +3,23 @@ mutable struct Model <: AbstractModel
     laser::AbstractLaser
     waveguide::Waveguide
 end
-mutable struct ToyModel{T} <: AbstractModel
-    ω0::T
-    FSR::T
-    nonlinearcoeff::T
-    linearloss::T
-    coupling::T
-    power_in::T
-    length::T
-    detuning::T
-    betacoeff::Vector{T}
-    pulsetime::T
+mutable struct ToyModel{TF, TG, TL, TPow, TLen, TT} <: AbstractModel
+    ω0::TF
+    FSR::TF
+    nonlinearcoeff::TG
+    linearloss::TL
+    coupling::Float64
+    power_in::TPow
+    length::TLen
+    detuning::Float64
+    betacoeff::Vector
+    pulsetime::TT
     has_shock::Bool
     has_raman::Bool
 end
-ToyModel(;ω0=200., FSR=0.1, nonlinearcoeff=1.0, linearloss=0.009, coupling=0.009,
-          power_in = 0.755, length=628e-6, detuning=0.0534, pulsetime=0.1,
-          betacoeff=[0, 0, -0.05],
+ToyModel(;ω0=200.0THz, FSR=0.1THz, nonlinearcoeff=1.0/W/m, linearloss=0.009/m,
+          coupling=0.009, power_in = 0.755W, length=(628e-6)m, detuning=0.0534,
+          pulsetime=0.1ps, betacoeff=[0/m, 0ps/m, -0.05ps^2/m],
           has_shock=false, has_raman=false) = ToyModel(ω0, FSR, nonlinearcoeff, linearloss,
                                               coupling, power_in, length,
                                               detuning, betacoeff, pulsetime,
@@ -27,6 +27,7 @@ ToyModel(;ω0=200., FSR=0.1, nonlinearcoeff=1.0, linearloss=0.009, coupling=0.00
 
 @inline currentstructure(model::Model, z) = currentstructure(model.waveguide, z)
 @inline pathlength(m::Model) = pathlength(m.waveguide)
+@inline pathlength(m::ToyModel) = m.length
 
 function derive_pulse(m::Model, t)
     #TODO: Generic injection of pulse to arbitrary mode

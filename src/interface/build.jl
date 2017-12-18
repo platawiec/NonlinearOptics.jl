@@ -2,22 +2,25 @@ function build_problem(model, probtype::DynamicNLSE;
                        time_pts=2^13, time_window=10.0ps, kwargs...)
 
     tmesh = linspace(-time_window/2, time_window/2, time_pts)
-    zspan = (0.0, pathlength(model))
+    zspan = (0.0m, pathlength(model))
 
     ω_zeroed = get_ωmesh(tmesh)
     const dt_mesh = tmesh[2]-tmesh[1]
     ω_zeroed = fftshift(ω_zeroed)
 
-    const ω0 = get_ω0(model)
+    const ω0 = frequency(model)
     const ω = ω_zeroed + ω0
     u0 = derive_pulse(model, tmesh)
+    pulse_unit = oneunit(first(u0))
+    length_unit = oneunit(first(zspan))
+    u0 = u0 / pulse_unit
 
     f, g, D, planned_fft!, planned_ifft! = build_GNLSE(model, ω, tmesh)
     planned_ifft! * view(u0, :, 1)
     prob = ODEProblem(
         f,
         u0,
-        zspan
+        (zspan[1]/length_unit, zspan[2]/length_unit)
     )
     prob_exp = DynamicNLSEProblem(
         prob,
@@ -117,7 +120,7 @@ function build_problem(model::ToyModel, ::DynamicLL;
 
     ω = get_ωmesh(tmesh)
     ω = fftshift(ω)
-    ω0 = 0.0#toy model ω0 is 0
+    ω0 = model.ω0
     ω .+= ω0
 
     #TODO: random start conditions don't seem to do anything
@@ -135,8 +138,10 @@ function build_GNLSE(model::ToyModel, ω, tmesh)
     const γnl = nonlinearcoeff(model, ω)
     const beta = stationarydispersion(model, ω)
 
-    const planned_fft! = plan_fft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
-    const planned_ifft! = plan_ifft!(Vector((1+0im)*tmesh), flags=FFTW.MEASURE)
+    unit_time = oneunit(1.0ps)
+    fft_mesh = Vector(Complex.(tmesh./unit_time))
+    const planned_fft! = plan_fft!(fft_mesh, flags=FFTW.MEASURE)
+    const planned_ifft! = plan_ifft!(fft_mesh, flags=FFTW.MEASURE)
     const D = 1im .* beta .- α/2
 
     const use_raman = has_raman(model)
@@ -145,9 +150,8 @@ function build_GNLSE(model::ToyModel, ω, tmesh)
     const (raman_response, raman_noise) = build_model_raman(model, tmesh, ω)
 
     const frac_raman = 0.18
-
     function f(z, u, du)
-        @. du = u * exp(D * z)
+        @. du = u * exp(D * z * m)
         planned_fft! * du
         if use_raman
             raman_term = planned_ifft! * abs2.(du) # prepare intensity for convolution
@@ -159,7 +163,7 @@ function build_GNLSE(model::ToyModel, ω, tmesh)
             @. du = du * abs2(du)
         end
         planned_ifft! * du
-        @. du = 1im * γnl * shock_term * du * exp(-D * z)
+        @. du = 1im * γnl * shock_term * du * exp(-D * z * m) / oneunit(γnl)
     end
     function g(z, u, du2) end
     return f, g, D, planned_fft!, planned_ifft!
@@ -374,10 +378,10 @@ end
     in frequency domain.
 """
 function build_model_raman(model::ToyModel, tmesh, ω)
-    raman_response = (1+0im)*similar(tmesh)
+    raman_response = zeros(Complex, length(tmesh))
     if model.has_raman
-        tau1 = 0.0122; tau2 = 0.032
-        raman_timeresponse = @. (1+0im)*(tmesh > 0) * (tau1^2 + tau2^2)/tau1/tau2^2*exp(-tmesh/tau2)*sin(tmesh/tau1)*length(tmesh)
+        tau1 = 0.0122ps; tau2 = 0.032ps
+        raman_timeresponse = Complex.((tmesh .> 0ps) .* (tau1^2 + tau2^2)/tau1/tau2^2.*exp.(-tmesh./tau2).*sin.(tmesh./tau1)*length(tmesh)*oneunit(1.0ps))
         raman_response = ifft!(fftshift(raman_timeresponse))
     end
     return raman_response, zero(raman_response)
