@@ -71,7 +71,7 @@ end
 function FT(sol::DynamicNLOSolution, z, mode_idx::Int=1)
     dt = sol.prob.tmesh[2]-sol.prob.tmesh[1]
     structure_idx, ls = currentstructure(sol.prob.model, z)
-    return fftshift(view(sol.sol(z), :, mode_idx, structure_idx) .* exp.(view(sol.prob.Doperator, :, mode_idx, structure_idx) * z)) / dt
+    return fftshift(view(sol.sol(z/m), :, mode_idx, structure_idx) .* exp.(view(sol.prob.Doperator, :, mode_idx, structure_idx) * z)) / dt
 end
 
 ##Abstract interfacei forwards to DiffEq sol field

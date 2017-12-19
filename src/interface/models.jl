@@ -26,6 +26,7 @@ ToyModel(;ω0=200.0THz, FSR=0.1THz, nonlinearcoeff=1.0/W/m, linearloss=0.009/m,
                                               has_shock, has_raman)
 
 @inline currentstructure(model::Model, z) = currentstructure(model.waveguide, z)
+@inline currentstructure(model::ToyModel, z) = (1, nothing)
 @inline pathlength(m::Model) = pathlength(m.waveguide)
 @inline pathlength(m::ToyModel) = m.length
 

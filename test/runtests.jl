@@ -1,5 +1,6 @@
 using Base.Test
 using NonlinearOptics
+import Unitful: nm, ps, THz, m, c0, °, W
 
 detected_tests = filter(name->startswith(name, "test_") && endswith(name, ".jl"),
                         readdir(@__DIR__))

@@ -1,14 +1,14 @@
-T_FWHM = 0.2
+T_FWHM = 0.2ps
 T_T0 = T_FWHM/(2*log(1+sqrt(2)))
-β₂ = -0.013
-γnl = 0.000032
-α = 1.75e-5
+β₂ = -0.013ps^2/m
+γnl = 0.000032W/m
+α = 1.75e-5/m
 coupling = 1.75e-5
-P_in= 55.6e-3
-FSR = 0.0182
-L = 0.0119
+P_in= 55.6e-3W
+FSR = 0.0182THz
+L = 0.0119m
 detuning = 0.0012
-comb_ikeda = ToyModel(;betacoeff=[0.0, 0.0, β₂],
+comb_ikeda = ToyModel(;betacoeff=[0.0/m, 0.0ps/m, β₂],
                     nonlinearcoeff=γnl,
                     linearloss=α,
                     power_in=P_in,
@@ -18,6 +18,6 @@ comb_ikeda = ToyModel(;betacoeff=[0.0, 0.0, β₂],
                     detuning=detuning,
                     coupling=coupling)
 prob_ikeda = build_problem(comb_ikeda, DynamicIkeda();
-                           time_window=25.0,
-                           tpoints=2^12)
+                           time_window=25.0ps,
+                           time_pts=2^12)
 sol_ikeda = solve(prob_ikeda)
